@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FPS Cleaning Services — Marketing Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* Inline editable text fields */
+  .txt-edit { cursor: text; border-radius: 3px; transition: outline 0.1s; outline: 1px solid transparent; }
+  .txt-edit:hover { outline: 1px dashed rgba(35,82,160,0.35); }
+  .txt-edit:focus { outline: 2px solid #2352a0; background: rgba(35,82,160,0.04); padding: 1px 4px; }
+  .txt-edit:empty:before { content: attr(placeholder); color: #bbb; }
+
+  :root {
+    --blue: #1a3a6b;
+    --blue-light: #2352a0;
+    --green: #2ecc71;
+    --green-dark: #27ae60;
+    --orange: #e67e22;
+    --red: #e74c3c;
+    --gray: #f4f6f9;
+    --gray-dark: #8892a0;
+    --text: #1e2535;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--gray);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--blue);
+    color: white;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo-circle {
+    width: 48px; height: 48px;
+    background: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; color: var(--blue);
+    letter-spacing: -0.5px;
+  }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header p { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .period-badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .last-update { font-size: 12px; opacity: 0.6; margin-top: 6px; }
+
+  /* NAV TABS */
+  .nav {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+  }
+  .nav-tab {
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-dark);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { color: var(--blue); }
+  .nav-tab.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+  }
+
+  /* MAIN CONTENT */
+  .main { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--blue);
+  }
+  .kpi-card.green { border-left-color: var(--green-dark); }
+  .kpi-card.orange { border-left-color: var(--orange); }
+  .kpi-card.red { border-left-color: var(--red); }
+
+  .kpi-label { font-size: 12px; color: var(--gray-dark); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 28px; font-weight: 700; color: var(--text); margin: 6px 0 4px; }
+  .kpi-sub { font-size: 12px; color: var(--gray-dark); }
+  .kpi-trend {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 12px; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px;
+    margin-top: 6px;
+  }
+  .trend-up { background: #e8f8f0; color: var(--green-dark); }
+  .trend-down { background: #fdecea; color: var(--red); }
+  .trend-neutral { background: #fef9e7; color: var(--orange); }
+
+  /* SECTION HEADERS */
+  .section { margin-bottom: 24px; }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .section-sub { font-size: 12px; color: var(--gray-dark); margin-top: 2px; }
+  .badge {
+    font-size: 11px; padding: 4px 10px; border-radius: 12px;
+    font-weight: 600;
+  }
+  .badge-blue { background: #ebf2ff; color: var(--blue-light); }
+  .badge-green { background: #e8f8f0; color: var(--green-dark); }
+  .badge-orange { background: #fef5eb; color: var(--orange); }
+
+  /* AD GROUPS TABLE */
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .ad-groups-table { width: 100%; border-collapse: collapse; }
+  .ad-groups-table th {
+    background: var(--gray);
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gray-dark);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .ad-groups-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ad-groups-table tr:last-child td { border-bottom: none; }
+  .ad-groups-table tr:hover td { background: #fafbfc; }
+
+  .group-name { font-weight: 500; }
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .dot-active { background: var(--green); }
+  .dot-paused { background: var(--gray-dark); }
+
+  /* PROGRESS BAR */
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-bg {
+    flex: 1; height: 6px; background: var(--border);
+    border-radius: 3px; overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 3px;
+    background: var(--blue-light);
+    transition: width 0.5s ease;
+  }
+  .bar-fill.green { background: var(--green-dark); }
+  .bar-fill.orange { background: var(--orange); }
+  .bar-pct { font-size: 12px; color: var(--gray-dark); width: 32px; text-align: right; }
+
+  /* EDITABLE INPUTS */
+  .editable {
+    border: none; background: transparent;
+    font-size: 14px; font-family: inherit;
+    color: var(--text); width: 80px;
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.2s;
+  }
+  .editable:hover, .editable:focus {
+    border-bottom-color: var(--blue-light);
+    outline: none;
+  }
+
+  /* TWO COLUMNS */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* CHANNEL COMPARISON */
+  .channel-row {
+    display: flex; align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .channel-row:last-child { border-bottom: none; }
+  .channel-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .channel-name { font-size: 14px; font-weight: 500; flex: 1; }
+  .channel-status { font-size: 12px; color: var(--gray-dark); }
+  .channel-metric { text-align: right; }
+  .channel-metric strong { display: block; font-size: 15px; font-weight: 700; }
+  .channel-metric span { font-size: 11px; color: var(--gray-dark); }
+
+  /* INSIGHT CARDS */
+  .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .insight-card {
+    background: white; border-radius: 12px; padding: 18px;
+    box-shadow: var(--shadow);
+    border-top: 3px solid var(--blue);
+  }
+  .insight-card.warn { border-top-color: var(--orange); }
+  .insight-card.good { border-top-color: var(--green-dark); }
+  .insight-emoji { font-size: 22px; margin-bottom: 8px; display: block; }
+  .insight-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .insight-text { font-size: 13px; color: var(--gray-dark); line-height: 1.5; }
+
+  /* CAMPAIGNS TAB */
+  .campaign-card {
+    background: white; border-radius: 12px;
+    box-shadow: var(--shadow); padding: 20px;
+    margin-bottom: 16px;
+  }
+  .campaign-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .campaign-title { font-size: 15px; font-weight: 600; }
+  .campaign-meta { font-size: 12px; color: var(--gray-dark); margin-top: 2px; }
+  .campaign-progress { margin: 12px 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--gray-dark); margin-bottom: 4px; }
+  .progress-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; background: var(--blue-light); }
+  .checklist { list-style: none; margin-top: 12px; }
+  .checklist li {
+    font-size: 13px; padding: 4px 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .check-done { color: var(--green-dark); font-weight: 700; }
+  .check-todo { color: var(--gray-dark); }
+
+  /* ROI SECTION */
+  .roi-box {
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    color: white; border-radius: 12px; padding: 24px;
+    margin-bottom: 24px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 20px;
+  }
+  .roi-item { text-align: center; }
+  .roi-value { font-size: 26px; font-weight: 700; }
+  .roi-label { font-size: 12px; opacity: 0.75; margin-top: 4px; }
+  .roi-divider { border-left: 1px solid rgba(255,255,255,0.2); }
+
+  /* QUARTER PLAN */
+  .quarter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .month-card {
+    background: white; border-radius: 10px; padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .month-name { font-size: 13px; font-weight: 700; color: var(--blue); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .month-item {
+    font-size: 12px; padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+    color: var(--text);
+  }
+  .month-item:last-child { border-bottom: none; }
+  .month-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* STATUS DROPDOWN */
+  .status-dropdown {
+    position: relative; display: inline-block;
+  }
+  .status-menu {
+    display: none;
+    position: absolute; right: 0; top: 110%;
+    background: white; border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 100; min-width: 150px; overflow: hidden;
+  }
+  .status-menu.open { display: block; }
+  .status-option {
+    padding: 9px 14px; font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .status-option:hover { background: var(--gray); }
+
+  /* EDITABLE CAMPAIGN FIELDS */
+  .camp-title-edit, .camp-note-edit {
+    border: none; outline: none; background: transparent;
+    font-family: inherit; width: 100%;
+  }
+  .camp-title-edit {
+    font-size: 15px; font-weight: 600;
+    border-bottom: 1px dashed transparent;
+  }
+  .camp-title-edit:hover, .camp-title-edit:focus {
+    border-bottom-color: var(--blue-light);
+  }
+  .camp-note-edit {
+    font-size: 12px; color: var(--gray-dark); resize: none;
+    border-bottom: 1px dashed transparent;
+  }
+  .camp-note-edit:hover, .camp-note-edit:focus {
+    border-bottom-color: var(--blue-light);
+  }
+  .progress-pct-edit {
+    border: none; background: transparent; font-family: inherit;
+    font-size: 13px; color: var(--gray-dark); width: 40px;
+    text-align: right; border-bottom: 1px dashed transparent;
+    cursor: pointer;
+  }
+  .progress-pct-edit:hover, .progress-pct-edit:focus {
+    border-bottom-color: var(--blue-light); outline: none;
+  }
+  .add-checklist-btn {
+    margin-top: 8px; font-size: 12px; color: var(--blue-light);
+    cursor: pointer; border: none; background: none;
+    font-family: inherit; padding: 2px 0;
+  }
+  .add-checklist-btn:hover { text-decoration: underline; }
+  .checklist li .del-item {
+    margin-left: auto; opacity: 0; font-size: 11px;
+    color: var(--red); cursor: pointer; padding: 0 4px;
+  }
+  .checklist li:hover .del-item { opacity: 1; }
+
+  /* EDIT HINT */
+  .edit-hint {
+    font-size: 12px; color: var(--gray-dark);
+    margin-bottom: 16px; padding: 10px 14px;
+    background: #fef9e7; border-radius: 8px;
+    border-left: 3px solid var(--orange);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* COSTS TAB */
+  .costs-table { width: 100%; border-collapse: collapse; }
+  .costs-table th {
+    background: var(--gray); padding: 10px 16px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--gray-dark); text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .costs-table td { padding: 13px 16px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .costs-table tr:last-child td { border-bottom: none; }
+  .costs-table tr:hover td { background: #fafbfc; }
+  .costs-table tr.total-row td { background: var(--gray); font-weight: 700; font-size: 15px; border-top: 2px solid var(--border); }
+  .cost-input {
+    border: none; background: transparent; font-family: inherit;
+    font-size: 14px; color: var(--text); width: 90px; text-align: right;
+    border-bottom: 1px dashed transparent; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .cost-input:hover, .cost-input:focus { border-bottom-color: var(--blue-light); outline: none; }
+  .cost-note {
+    border: none; background: transparent; font-family: inherit;
+    font-size: 13px; color: var(--gray-dark); width: 100%;
+    border-bottom: 1px dashed transparent;
+  }
+  .cost-note:hover, .cost-note:focus { border-bottom-color: var(--blue-light); outline: none; }
+  .cost-category { font-weight: 500; }
+  .add-cost-btn {
+    margin-top: 12px; font-size: 13px; color: var(--blue-light);
+    cursor: pointer; border: 1px dashed var(--blue-light); background: none;
+    font-family: inherit; padding: 6px 14px; border-radius: 6px;
+  }
+  .add-cost-btn:hover { background: #ebf2ff; }
+  .del-cost { opacity: 0; font-size: 12px; color: var(--red); cursor: pointer; padding: 0 6px; }
+  .costs-table tr:hover .del-cost { opacity: 1; }
+
+  .costs-summary {
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    color: white; border-radius: 12px; padding: 24px;
+    margin-bottom: 24px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px; text-align: center;
+  }
+  .costs-summary .roi-value { font-size: 26px; font-weight: 700; }
+  .costs-summary .roi-label { font-size: 12px; opacity: 0.75; margin-top: 4px; }
+  .costs-summary .roi-divider { border-left: 1px solid rgba(255,255,255,0.2); }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col, .three-col, .roi-box, .quarter-grid { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    .header { padding: 16px; flex-direction: column; gap: 10px; }
+  }
+
+  /* PRINT/PRESENTATION MODE */
+  @media print {
+    .nav { display: none; }
+    .tab-content { display: block !important; page-break-after: always; }
+    .edit-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-circle">FPS</div>
+    <div>
+      <h1>Marketing Dashboard</h1>
+      <p>FPS Cleaning Services · Rhode Island</p>
+    </div>
+  </div>
+  <div class="header-right" style="text-align:right">
+    <div class="period-badge">📅 Q2 · April–June 2026</div>
+    <div class="last-update" id="updateTime">Updated: —</div>
+    <div id="sheets-indicator" style="font-size:11px;opacity:0.7;margin-top:4px;cursor:pointer" onclick="loadFromSheets()">⚪ Google Sheets not connected</div>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav">
+  <div class="nav-tab active" onclick="showTab('overview')">📊 Overview</div>
+  <div class="nav-tab" onclick="showTab('google')">🔍 Google Ads</div>
+  <div class="nav-tab" onclick="showTab('campaigns')">📋 Campaigns</div>
+  <div class="nav-tab" onclick="showTab('costs')">🧾 Costs</div>
+  <div class="nav-tab" onclick="showTab('roi')">💰 ROI & Results</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TAB: OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+
+    <div class="edit-hint">✏️ <strong>Click any text or number to edit it directly.</strong> Changes save to Google Sheets automatically. <span onclick="resetAll()" style="color:var(--blue-light);cursor:pointer;text-decoration:underline;margin-left:8px">↺ Reset</span></div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Weekly Ad Spend</div>
+        <div class="kpi-value">$<span class="editable" contenteditable="true">500</span></div>
+        <div class="kpi-sub">Google Ads · active</div>
+        <div class="kpi-trend trend-neutral">→ Stable</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Leads This Month</div>
+        <div class="kpi-value"><span class="editable" contenteditable="true">18</span></div>
+        <div class="kpi-sub">approx. 5 / week</div>
+        <div class="kpi-trend trend-up">↑ On track</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Cost per Lead</div>
+        <div class="kpi-value">$<span class="editable" contenteditable="true">103</span></div>
+        <div class="kpi-sub">Google Ads average</div>
+        <div class="kpi-trend trend-neutral">→ Within target</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Contracts Closed</div>
+        <div class="kpi-value"><span class="editable" contenteditable="true">2</span></div>
+        <div class="kpi-sub">this month (update)</div>
+        <div class="kpi-trend trend-neutral">→ Track weekly</div>
+      </div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Key Insights for Management</div>
+          <div class="section-sub">What the numbers mean in plain business terms</div>
+        </div>
+      </div>
+      <div class="insight-grid" id="insights-container">
+        <div class="insight-card good">
+          <span class="insight-emoji">💵</span>
+          <div class="insight-title">$100/lead is a good number for B2B</div>
+          <div class="insight-text">A recurring cleaning contract is worth $1,000–5,000/month. If we close 1 in 5 leads, each contract costs us ~$500 to acquire — a strong ROI in commercial cleaning.</div>
+        </div>
+        <div class="insight-card warn">
+          <span class="insight-emoji">📈</span>
+          <div class="insight-title">$500/week limits us to ~5 leads/week</div>
+          <div class="insight-text">Current budget generates consistent leads, but volume is capped. Increasing to $750–1,000/week could double lead flow without significantly changing cost per lead.</div>
+        </div>
+        <div class="insight-card">
+          <span class="insight-emoji">🏆</span>
+          <div class="insight-title">Floor Care & Strip-Wax: highest margin</div>
+          <div class="insight-text">These services have the best profit margin. Our Floor Cleaning ad group should be the top priority for optimization — higher bids, better copy, dedicated landing page.</div>
+        </div>
+        <div class="insight-card good">
+          <span class="insight-emoji">🎯</span>
+          <div class="insight-title">Dunkin' + Schools: active outreach now</div>
+          <div class="insight-text">Franchise visits (Renée) + school direct mail launching this quarter. These are contract-first channels — one Dunkin' franchisee with 5 locations = significant recurring revenue.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHANNELS -->
+    <div class="two-col">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Active Channels</div>
+        </div>
+        <div class="card" id="channels-container">
+          <div class="channel-row">
+            <div class="channel-icon" style="background:#e8f0fe">🔍</div>
+            <div style="flex:1">
+              <div class="channel-name">Google Ads</div>
+              <div class="channel-status">7 ad groups · 6 active</div>
+            </div>
+            <div class="channel-metric"><strong>$2,000<span style="font-size:11px;font-weight:400">/mo</span></strong><span>~$500/week</span></div>
+          </div>
+          <div class="channel-row">
+            <div class="channel-icon" style="background:#fce4ec">📸</div>
+            <div style="flex:1">
+              <div class="channel-name">Instagram / Facebook</div>
+              <div class="channel-status">organic only · no paid</div>
+            </div>
+            <div class="channel-metric"><strong>$0</strong><span>brand awareness</span></div>
+          </div>
+          <div class="channel-row">
+            <div class="channel-icon" style="background:#fff3e0">🖨️</div>
+            <div style="flex:1">
+              <div class="channel-name">Dunkin' Flyers</div>
+              <div class="channel-status">in-person · René visiting now</div>
+            </div>
+            <div class="channel-metric"><strong>Direct</strong><span>franchise outreach</span></div>
+          </div>
+          <div class="channel-row">
+            <div class="channel-icon" style="background:#e8f8f0">📬</div>
+            <div style="flex:1">
+              <div class="channel-name">Schools Direct Mail</div>
+              <div class="channel-status">postcard · launching Q2</div>
+            </div>
+            <div class="channel-metric"><strong>Summer</strong><span>floor care focus</span></div>
+          </div>
+          <div class="channel-row" style="opacity:0.5">
+            <div class="channel-icon" style="background:#f0f0f0">📧</div>
+            <div style="flex:1">
+              <div class="channel-name">Cold Email (Apollo)</div>
+              <div class="channel-status">paused · needs funnel</div>
+            </div>
+            <div class="channel-metric"><strong>Paused</strong><span>—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Leads by Ad Group</div>
+          <span class="badge badge-blue">Estimated</span>
+        </div>
+        <div class="card" style="padding: 16px 20px;">
+          <div style="margin-bottom: 14px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span>Office Cleaning</span><span style="font-weight:600">32%</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width:32%"></div></div>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span>Janitorial Services</span><span style="font-weight:600">24%</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width:24%"></div></div>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span>Restaurant Cleaning</span><span style="font-weight:600">18%</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill green" style="width:18%"></div></div>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span>Disinfecting & Deep Clean</span><span style="font-weight:600">12%</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width:12%"></div></div>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span>Floor Cleaning</span><span style="font-weight:600">10%</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill orange" style="width:10%"></div></div>
+          </div>
+          <div style="margin-bottom: 0;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span>Medical / Hospital</span><span style="font-weight:600">4%</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width:4%"></div></div>
+          </div>
+          <div style="font-size:11px;color:var(--gray-dark);margin-top:14px;">⚠️ Update these % with real Google Ads data when available</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: GOOGLE ADS -->
+  <div class="tab-content" id="tab-google">
+    <div class="edit-hint">✏️ <strong>Click any text or number to edit.</strong> Edits sync to Google Sheets automatically.</div>
+
+    <div class="kpi-grid" style="grid-template-columns: repeat(3,1fr)">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Weekly Budget</div>
+        <div class="kpi-value">$<span contenteditable="true" class="editable">500</span></div>
+        <div class="kpi-sub">across 6 active groups</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Avg. Cost Per Lead</div>
+        <div class="kpi-value">$<span contenteditable="true" class="editable">103</span></div>
+        <div class="kpi-sub">target: under $120</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Leads / Week (est.)</div>
+        <div class="kpi-value">~<span contenteditable="true" class="editable">5</span></div>
+        <div class="kpi-sub">based on budget ÷ CPL</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Ad Group Performance</div>
+          <div class="section-sub">Edit the numbers directly. Green = high priority, Orange = watch, Gray = paused</div>
+        </div>
+        <span class="badge badge-blue">6 Active · 1 Paused</span>
+      </div>
+      <div class="card">
+        <table class="ad-groups-table">
+          <thead>
+            <tr>
+              <th>Ad Group</th>
+              <th>Status</th>
+              <th>Est. Budget Share</th>
+              <th>Leads/mo</th>
+              <th>Cost/Lead</th>
+              <th>Priority</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="group-name">Office Cleaning</span></td>
+              <td><span class="status-dot dot-active"></span>Active</td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-bg"><div class="bar-fill" style="width:25%"></div></div>
+                  <span class="bar-pct">25%</span>
+                </div>
+              </td>
+              <td><input class="editable" value="6" type="number" min="0"></td>
+              <td>$<input class="editable" value="95" type="number" min="0"></td>
+              <td><span class="badge badge-blue">High</span></td>
+            </tr>
+            <tr>
+              <td><span class="group-name">Restaurant Cleaning</span></td>
+              <td><span class="status-dot dot-active"></span>Active</td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-bg"><div class="bar-fill" style="width:20%"></div></div>
+                  <span class="bar-pct">20%</span>
+                </div>
+              </td>
+              <td><input class="editable" value="4" type="number" min="0"></td>
+              <td>$<input class="editable" value="110" type="number" min="0"></td>
+              <td><span class="badge badge-blue">High</span></td>
+            </tr>
+            <tr>
+              <td><span class="group-name" style="color:var(--orange);font-weight:600">⭐ Floor Cleaning</span></td>
+              <td><span class="status-dot dot-active"></span>Active</td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-bg"><div class="bar-fill orange" style="width:15%"></div></div>
+                  <span class="bar-pct">15%</span>
+                </div>
+              </td>
+              <td><input class="editable" value="3" type="number" min="0"></td>
+              <td>$<input class="editable" value="105" type="number" min="0"></td>
+              <td><span class="badge badge-orange">⬆ Boost</span></td>
+            </tr>
+            <tr>
+              <td><span class="group-name">Medical / Hospital Cleaning</span></td>
+              <td><span class="status-dot dot-active"></span>Active</td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-bg"><div class="bar-fill" style="width:15%"></div></div>
+                  <span class="bar-pct">15%</span>
+                </div>
+              </td>
+              <td><input class="editable" value="2" type="number" min="0"></td>
+              <td>$<input class="editable" value="125" type="number" min="0"></td>
+              <td><span class="badge badge-blue">Medium</span></td>
+            </tr>
+            <tr>
+              <td><span class="group-name">Janitorial Services</span></td>
+              <td><span class="status-dot dot-active"></span>Active</td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-bg"><div class="bar-fill green" style="width:20%"></div></div>
+                  <span class="bar-pct">20%</span>
+                </div>
+              </td>
+              <td><input class="editable" value="5" type="number" min="0"></td>
+              <td>$<input class="editable" value="98" type="number" min="0"></td>
+              <td><span class="badge badge-green">Strong</span></td>
+            </tr>
+            <tr>
+              <td><span class="group-name">Disinfecting & Deep Cleaning</span></td>
+              <td><span class="status-dot dot-active"></span>Active</td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-bg"><div class="bar-fill" style="width:5%"></div></div>
+                  <span class="bar-pct">5%</span>
+                </div>
+              </td>
+              <td><input class="editable" value="2" type="number" min="0"></td>
+              <td>$<input class="editable" value="115" type="number" min="0"></td>
+              <td><span class="badge badge-blue">Medium</span></td>
+            </tr>
+            <tr style="opacity:0.5">
+              <td><span class="group-name">Labor</span></td>
+              <td><span class="status-dot dot-paused"></span>Paused</td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-bg"><div class="bar-fill" style="width:0%"></div></div>
+                  <span class="bar-pct">0%</span>
+                </div>
+              </td>
+              <td><input class="editable" value="0" type="number" min="0"></td>
+              <td>$<input class="editable" value="—" style="width:60px"></td>
+              <td><span class="badge" style="background:#f0f0f0;color:#999">Paused</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="padding:20px;margin-top:16px;background:linear-gradient(135deg,#fff8e1,#fff3cd)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">💡 Floor Cleaning Opportunity</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6;">Floor Cleaning (strip & wax, carpet, floor care) has the <strong>highest profit margin</strong> of all FPS services, but is getting only 15% of budget. Recommend increasing its share to 25–30% and creating a dedicated landing page for this group. Also pairs directly with the Schools summer campaign.</div>
+    </div>
+  </div>
+
+  <!-- TAB: CAMPAIGNS -->
+  <div class="tab-content" id="tab-campaigns">
+
+    <div class="section-header" style="margin-bottom:20px">
+      <div>
+        <div class="section-title">Q2 2026 Campaign Tracker</div>
+        <div class="section-sub">April · May · June — aligned across all channels</div>
+      </div>
+      <span class="badge badge-blue">Q2 Active</span>
+    </div>
+
+    <!-- Campaigns rendered dynamically from Google Sheets -->
+    <div id="campaigns-container">
+      <div style="padding:40px;text-align:center;color:var(--gray-dark);font-size:14px;">
+        ⏳ Waiting for Google Sheets data…<br>
+        <span style="font-size:12px;margin-top:6px;display:block">Make sure the sheet is connected (🟢 indicator in the header)</span>
+      </div>
+    </div>
+
+    <!-- QUARTERLY PLAN -->
+    <div class="section" style="margin-top:24px">
+      <div class="section-header">
+        <div class="section-title">Monthly Focus — Q2</div>
+      </div>
+      <div class="quarter-grid">
+        <div class="month-card">
+          <div class="month-name">April</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--orange)"></div>Dunkin' visits begin</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--blue)"></div>Google Ads: optimize</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--green-dark)"></div>School postcard: prep</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--blue-light)"></div>Dashboard built ✓</div>
+        </div>
+        <div class="month-card">
+          <div class="month-name">May</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--orange)"></div>Dunkin': follow-ups</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--green-dark)"></div>Postcards mailed</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--blue)"></div>Google: Floor Care push</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--blue-light)"></div>Instagram: summer content</div>
+        </div>
+        <div class="month-card">
+          <div class="month-name">June</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--green-dark)"></div>School contracts signed</div>
+          <div class="month-item"><div class="background:var(--orange)"></div>Summer floor care starts</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--blue)"></div>Q3 plan: email relaunch</div>
+          <div class="month-item"><div class="month-dot" style="background:var(--blue-light)"></div>Q2 results review</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: COSTS -->
+  <div class="tab-content" id="tab-costs">
+
+    <div class="edit-hint">✏️ <strong>Click any value or note to edit directly.</strong> Total updates automatically as you type.</div>
+
+    <!-- Summary strip -->
+    <div class="costs-summary">
+      <div>
+        <div class="roi-value" id="costs-total-display">$0</div>
+        <div class="roi-label">Total Monthly Costs</div>
+      </div>
+      <div class="roi-divider">
+        <div class="roi-value" id="costs-ads-display">$2,000</div>
+        <div class="roi-label">Google Ads (from Overview)</div>
+      </div>
+      <div class="roi-divider">
+        <div class="roi-value" id="costs-grand-display">$0</div>
+        <div class="roi-label">Total Marketing Spend</div>
+      </div>
+    </div>
+
+    <!-- SOFTWARE -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Software & Tools</div>
+          <div class="section-sub">Subscriptions, platforms, and digital tools</div>
+        </div>
+        <span class="badge badge-blue" id="software-subtotal">$0 / mo</span>
+      </div>
+      <div class="card">
+        <table class="costs-table">
+          <thead>
+            <tr>
+              <th style="width:35%">Item</th>
+              <th style="width:15%">Monthly ($)</th>
+              <th>Notes</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="software-body">
+            <tr data-cat="software">
+              <td><span class="cost-category txt-edit" contenteditable="true">Apollo / ZoomInfo</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…" value="Cold email / prospecting — paused"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+            <tr data-cat="software">
+              <td><span class="cost-category txt-edit" contenteditable="true">Google Ads Platform</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…" value="Management fee (if any) — not ad spend"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+            <tr data-cat="software">
+              <td><span class="cost-category txt-edit" contenteditable="true">CRM / Other Tools</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="padding:10px 16px">
+          <button class="add-cost-btn" onclick="addCostRow('software-body')">+ Add item</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRINT & MATERIALS -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Print & Promotional Materials</div>
+          <div class="section-sub">Flyers, postcards, mailers, branded items</div>
+        </div>
+        <span class="badge badge-orange" id="print-subtotal">$0 / mo</span>
+      </div>
+      <div class="card">
+        <table class="costs-table">
+          <thead>
+            <tr>
+              <th style="width:35%">Item</th>
+              <th style="width:15%">Monthly ($)</th>
+              <th>Notes</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="print-body">
+            <tr data-cat="print">
+              <td><span class="cost-category txt-edit" contenteditable="true">Dunkin' Flyers</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…" value="Design + print cost"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+            <tr data-cat="print">
+              <td><span class="cost-category txt-edit" contenteditable="true">School Postcards (Direct Mail)</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…" value="Print + postage — Q2 campaign"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+            <tr data-cat="print">
+              <td><span class="cost-category txt-edit" contenteditable="true">Branded Items / Uniforms</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="padding:10px 16px">
+          <button class="add-cost-btn" onclick="addCostRow('print-body')">+ Add item</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OTHER -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Other Marketing Costs</div>
+          <div class="section-sub">Design, freelancers, events, misc.</div>
+        </div>
+        <span class="badge badge-green" id="other-subtotal">$0 / mo</span>
+      </div>
+      <div class="card">
+        <table class="costs-table">
+          <thead>
+            <tr>
+              <th style="width:35%">Item</th>
+              <th style="width:15%">Monthly ($)</th>
+              <th>Notes</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="other-body">
+            <tr data-cat="other">
+              <td><span class="cost-category txt-edit" contenteditable="true">Design / Freelancer</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+            <tr data-cat="other">
+              <td><span class="cost-category txt-edit" contenteditable="true">Photography / Content</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+            <tr data-cat="other">
+              <td><span class="cost-category txt-edit" contenteditable="true">Miscellaneous</span></td>
+              <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+              <td><input class="cost-note" type="text" placeholder="Add note…"></td>
+              <td><span class="del-cost" onclick="delCostRow(this)" title="Remove">✕</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="padding:10px 16px">
+          <button class="add-cost-btn" onclick="addCostRow('other-body')">+ Add item</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:var(--gray-dark);padding:4px 0 24px">
+      💡 <strong>Tip:</strong> Fill in the actual monthly values for each category. The Google Ads spend ($2,000/mo) is already counted separately from the Overview — don't double count it here.
+    </div>
+
+  </div>
+
+  <!-- TAB: ROI -->
+  <div class="tab-content" id="tab-roi">
+
+    <div class="roi-box">
+      <div class="roi-item">
+        <div class="roi-value">$<span id="roi-spend">2,000</span></div>
+        <div class="roi-label">Monthly Ad Spend</div>
+      </div>
+      <div class="roi-item roi-divider">
+        <div class="roi-value">~<span id="roi-leads">18</span></div>
+        <div class="roi-label">Leads Generated</div>
+      </div>
+      <div class="roi-item roi-divider">
+        <div class="roi-value"><span id="roi-closed">2</span></div>
+        <div class="roi-label">Contracts Closed</div>
+      </div>
+      <div class="roi-item roi-divider">
+        <div class="roi-value" id="roi-ratio" style="color:#2ecc71">—</div>
+        <div class="roi-label">Close Rate</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card" style="padding:24px">
+        <div class="section-title" style="margin-bottom:16px">📊 ROI Calculator</div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--gray-dark);display:block;margin-bottom:4px">Monthly Ad Spend ($)</label>
+          <input type="number" id="calc-spend" value="2000" oninput="calcROI()" style="border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;width:100%">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--gray-dark);display:block;margin-bottom:4px">Cost per Lead ($)</label>
+          <input type="number" id="calc-cpl" value="103" oninput="calcROI()" style="border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;width:100%">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--gray-dark);display:block;margin-bottom:4px">Close Rate (%)</label>
+          <input type="number" id="calc-rate" value="15" oninput="calcROI()" style="border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;width:100%">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--gray-dark);display:block;margin-bottom:4px">Avg. Contract Value ($/month)</label>
+          <input type="number" id="calc-contract" value="1500" oninput="calcROI()" style="border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;width:100%">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--gray-dark);display:block;margin-bottom:4px">Avg. Contract Duration (months)</label>
+          <input type="number" id="calc-months" value="12" oninput="calcROI()" style="border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:14px;width:100%">
+        </div>
+      </div>
+
+      <div class="card" style="padding:24px">
+        <div class="section-title" style="margin-bottom:20px">📈 Projected Results</div>
+        <div style="display:flex;flex-direction:column;gap:16px" id="roi-results">
+          <!-- filled by JS -->
+        </div>
+        <div style="margin-top:20px;padding:14px;background:var(--gray);border-radius:8px;font-size:12px;color:var(--gray-dark)">
+          💡 These projections assume all contracts are recurring. One Dunkin' franchisee with 5 locations at $800/location = $4,000/month recurring.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+  // ── GOOGLE SHEETS INTEGRATION ────────────────────────────────
+  const SHEET_ID = '1t4lS0Ca0m4h4fYO_zEX0IjHUyiRTezxnmtDKhjwITYg';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUnyaT5oUeINkSbWbEk0etfg9XRj29KMKXV9430X0zLbJiy5PQMC4utYFByimgeKml/exec';
+
+  const TABS = ['KPIs','Campaigns','Channels','Insights','AdGroups'];
+  let _loaded = {};
+  let _sheetPos = {};
+
+  function _parseRows(raw) {
+    if (!raw || raw.length < 2) return [];
+    const headers = raw[0];
+    return raw.slice(1).map((row, i) => {
+      const obj = { _row: i + 2 };
+      headers.forEach((h, j) => { obj[String(h)] = row[j] !== undefined && row[j] !== null ? String(row[j]) : ''; });
+      return obj;
+    }).filter(r => Object.values(r).some(v => v && v !== String(r._row)));
+  }
+
+  let _writeCallback = null;
+  function writeToSheet(tab, row, col, value, onDone) {
+    if (!APPS_SCRIPT_URL) return;
+    const old = document.getElementById('jsonp-write');
+    if (old) old.remove();
+    _writeCallback = onDone || null;
+    const s = document.createElement('script');
+    s.id = 'jsonp-write';
+    s.src = `${APPS_SCRIPT_URL}?action=write&tab=${encodeURIComponent(tab)}&row=${row}&col=${col}&val=${encodeURIComponent(value)}&callback=handleWrite&t=${Date.now()}`;
+    document.head.appendChild(s);
+  }
+  window.handleWrite = function(r) {
+    if (r.ok) { showSaved(); if (_writeCallback) { _writeCallback(); _writeCallback = null; } }
+    else console.warn('Write error:', r.error);
+  };
+
+  function loadFromSheets() {
+    _loaded = {};
+    const ind = document.getElementById('sheets-indicator');
+    if (ind) { ind.textContent = '⏳ Syncing...'; ind.style.color = 'rgba(255,255,255,0.7)'; }
+
+    if (APPS_SCRIPT_URL) {
+      const old = document.getElementById('jsonp-main');
+      if (old) old.remove();
+      const s = document.createElement('script');
+      s.id = 'jsonp-main';
+      s.src = `${APPS_SCRIPT_URL}?action=read&callback=handleAllData&t=${Date.now()}`;
+      s.onerror = () => { const i=document.getElementById('sheets-indicator'); if(i){i.textContent='⚠️ Apps Script error';i.style.color='#e67e22';} };
+      document.head.appendChild(s);
+    } else {
+      TABS.forEach(tab => {
+        const old = document.getElementById('jsonp-'+tab); if (old) old.remove();
+        const s = document.createElement('script');
+        s.id = 'jsonp-'+tab;
+        s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=reqId:0;responseHandler:handle_gviz_${tab}&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`;
+        s.onerror = () => { _loaded[tab]='err'; _checkDone(); };
+        document.head.appendChild(s);
+      });
+    }
+  }
+
+  window.handleAllData = function(data) {
+    if (data.error) { console.warn('Apps Script:', data.error); return; }
+    if (data.KPIs)      _applyKPIs(_parseRows(data.KPIs));
+    if (data.Campaigns) _applyCampaigns(_parseRows(data.Campaigns));
+    if (data.Channels)  _applyChannels(_parseRows(data.Channels));
+    if (data.Insights)  _applyInsights(_parseRows(data.Insights));
+    if (data.AdGroups)  _applyAdGroups(_parseRows(data.AdGroups));
+    const ind = document.getElementById('sheets-indicator');
+    if (ind) { ind.textContent = '🟢 Live — Google Sheets ✎'; ind.style.color = '#2ecc71'; }
+  };
+
+  function _checkDone() {
+    if (Object.keys(_loaded).length < TABS.length) return;
+    const ind = document.getElementById('sheets-indicator');
+    const ok = Object.values(_loaded).some(v => v==='ok');
+    if (ind) { ind.textContent = ok ? '🟢 Live — Google Sheets' : '⚠️ Could not connect'; ind.style.color = ok ? '#2ecc71' : '#e67e22'; }
+  }
+
+  function _gvizToRows(res) {
+    try {
+      const cols = res.table.cols.map(c=>(c.label||'').trim());
+      return res.table.rows.map((row,i)=>{
+        const obj={_row:i+2};
+        cols.forEach((h,j)=>{ const cell=row.c&&row.c[j]; obj[h]=(cell&&cell.v!==null)?String(cell.v):''; });
+        return obj;
+      });
+    } catch(e){return[];}
+  }
+  window.handle_gviz_KPIs      = r=>{ _applyKPIs(_gvizToRows(r));      _loaded.KPIs='ok';      _checkDone(); };
+  window.handle_gviz_Campaigns = r=>{ _applyCampaigns(_gvizToRows(r)); _loaded.Campaigns='ok'; _checkDone(); };
+  window.handle_gviz_Channels  = r=>{ _applyChannels(_gvizToRows(r));  _loaded.Channels='ok';  _checkDone(); };
+  window.handle_gviz_Insights  = r=>{ _applyInsights(_gvizToRows(r));  _loaded.Insights='ok';  _checkDone(); };
+  window.handle_gviz_AdGroups  = r=>{ _applyAdGroups(_gvizToRows(r));  _loaded.AdGroups='ok';  _checkDone(); };
+
+  // ── KPIs ──────────────────────────────────────────────────────
+  const KPI_LABELS = ['Weekly Ad Spend','Leads This Month','Cost per Lead','Contracts Closed'];
+  function _applyKPIs(rows) {
+    _sheetPos.KPIs = {};
+    const cards = document.querySelectorAll('#tab-overview .kpi-card');
+    rows.forEach(r => {
+      const idx = KPI_LABELS.indexOf(r['Metric']);
+      if (idx < 0 || !cards[idx]) return;
+      _sheetPos.KPIs[r['Metric']] = r._row;
+      const valEl = cards[idx].querySelector('[contenteditable="true"]');
+      if (valEl) {
+        valEl.innerText = r['Value'];
+        valEl.onblur = () => { saveAll(); writeToSheet('KPIs', r._row, 2, valEl.innerText.trim()); };
+      }
+      const lblEl = cards[idx].querySelector('.kpi-label');
+      if (lblEl) {
+        lblEl.contentEditable = 'true';
+        lblEl.classList.add('txt-edit');
+        lblEl.innerText = r['Metric'];
+        lblEl.onblur = () => writeToSheet('KPIs', r._row, 1, lblEl.innerText.trim());
+      }
+    });
+    const spend     = parseFloat(rows.find(r=>r['Metric']==='Weekly Ad Spend')?.Value)||0;
+    const cpl       = parseFloat(rows.find(r=>r['Metric']==='Cost per Lead')?.Value)||0;
+    const leads     = parseFloat(rows.find(r=>r['Metric']==='Leads This Month')?.Value)||0;
+    const contracts = parseFloat(rows.find(r=>r['Metric']==='Contracts Closed')?.Value)||0;
+
+    if (spend) { const el=document.getElementById('calc-spend'); if(el) el.value=spend*4; }
+    if (cpl)   { const el=document.getElementById('calc-cpl');   if(el) el.value=cpl; }
+
+    const rSpend = document.getElementById('roi-spend');
+    const rLeads = document.getElementById('roi-leads');
+    const rClose = document.getElementById('roi-closed');
+    const rRatio = document.getElementById('roi-ratio');
+    if (rSpend && spend) rSpend.textContent = (spend*4).toLocaleString();
+    if (rLeads && leads) rLeads.textContent = leads;
+    if (rClose && contracts) rClose.textContent = contracts;
+    if (rRatio) {
+      if (leads > 0 && contracts > 0) {
+        const rate = ((contracts / leads) * 100).toFixed(0);
+        rRatio.textContent = rate + '%';
+        const rateInput = document.getElementById('calc-rate');
+        if (rateInput) { rateInput.value = rate; }
+      } else {
+        rRatio.textContent = '—';
+      }
+    }
+    calcROI();
+    recalcCosts();
+  }
+
+  // ── Campaigns ─────────────────────────────────────────────────
+  const STATUS_MAP = {
+    'Active':      {bg:'#e8f8f0',c:'#27ae60'},
+    'In Progress': {bg:'#fef5eb',c:'#e67e22'},
+    'Launching':   {bg:'#ebf2ff',c:'#2352a0'},
+    'Planned':     {bg:'#f0f4ff',c:'#5c7adb'},
+    'Paused':      {bg:'#f0f0f0',c:'#999'},
+    'Completed':   {bg:'#e8f8f0',c:'#27ae60'},
+  };
+  function _applyCampaigns(rows) {
+    _sheetPos.Campaigns = rows.map(r => r._row);
+    const container = document.getElementById('campaigns-container');
+    if (!container) return;
+    let html = '';
+    rows.forEach((c, ci) => {
+      const status = c['Status']||'Planned';
+      const prog   = parseInt(c['Progress'])||0;
+      const s = STATUS_MAP[status]||STATUS_MAP['Planned'];
+      const dim = (status==='Paused'||status==='Planned') ? 'opacity:0.78' : '';
+      let items = '';
+      for (let j=1; j<=15; j++) {
+        const txt = c[`Item ${j}`]; if (!txt) break;
+        const dv = (c[`Done ${j}`]||'').toLowerCase();
+        const done = dv==='yes'||dv==='1'||dv==='true'||dv==='sim';
+        const textCol = 4 + j*2;
+        const doneCol = 5 + j*2;
+        items += `<li data-ci="${ci}" data-j="${j}" data-done="${done?'yes':'no'}" data-done-col="${doneCol}" style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;padding:3px 0">
+          <span class="${done?'check-done':'check-todo'}" style="flex-shrink:0;margin-top:1px">${done?'✓':'○'}</span>
+          <span class="txt-edit item-text" contenteditable="true" data-tab="Campaigns" data-row="${c._row}" data-col="${textCol}" style="${done?'text-decoration:line-through;color:var(--gray-dark)':''}">${txt}</span></li>`;
+      }
+
+      const statusOpts = Object.keys(STATUS_MAP).map(st =>
+        `<div class="status-option" onclick="setCampStatus(${ci},this,'${st}')">${st}</div>`
+      ).join('');
+
+      html += `
+        <div class="campaign-card" style="${dim}">
+          <div class="campaign-header">
+            <div style="flex:1">
+              <div class="campaign-title txt-edit" contenteditable="true" data-tab="Campaigns" data-row="${c._row}" data-col="1">${c['Title']}</div>
+              ${c['Channel']?`<div class="campaign-meta txt-edit" contenteditable="true" data-tab="Campaigns" data-row="${c._row}" data-col="4">Channel: ${c['Channel']}</div>`:''}
+            </div>
+            <div class="status-dropdown">
+              <span class="badge camp-status" onclick="toggleStatusMenu(this)" style="cursor:pointer;background:${s.bg};color:${s.c}">${status} ▾</span>
+              <div class="status-menu">${statusOpts}</div>
+            </div>
+          </div>
+          ${prog>=0?`<div class="campaign-progress">
+            <div class="progress-label"><span>Progress</span>
+              <input class="progress-pct-edit" type="number" min="0" max="100" value="${prog}"
+                onchange="setCampProgress(${ci},this)" title="Edit %">%
+            </div>
+            <div class="progress-bar-bg"><div class="camp-bar" style="width:${prog}%;height:100%;border-radius:3px;background:${s.c}"></div></div>
+          </div>`:''}
+          ${items?`<ul class="checklist" id="cl-${ci}">${items}</ul>`:''}
+          ${c['Goal']?`<div class="txt-edit" contenteditable="true" data-tab="Campaigns" data-row="${c._row}" data-col="5" style="margin-top:12px;font-size:12px;color:var(--gray-dark)">Goal: ${c['Goal']}</div>`:''}
+        </div>`;
+    });
+    container.innerHTML = html || '<div style="padding:40px;text-align:center;color:var(--gray-dark)">No campaigns in sheet yet.</div>';
+
+    container.querySelectorAll('[contenteditable="true"][data-tab="Campaigns"]').forEach(el => {
+      if (el.classList.contains('item-text')) {
+        el.addEventListener('click', e => e.stopPropagation());
+      }
+      el.onblur = () => {
+        const row = parseInt(el.dataset.row);
+        const col = parseInt(el.dataset.col);
+        let val = el.innerText.trim();
+        if (col === 4 && val.startsWith('Channel: ')) val = val.slice(9);
+        if (col === 5 && val.startsWith('Goal: '))    val = val.slice(6);
+        writeToSheet('Campaigns', row, col, val);
+        saveAll();
+      };
+    });
+
+    container.querySelectorAll('.checklist li').forEach(li => {
+      li.addEventListener('click', e => {
+        if (e.target.isContentEditable || e.target.closest('[contenteditable]')) return;
+        const col  = parseInt(li.dataset.doneCol);
+        const done = li.dataset.done !== 'yes';
+        li.dataset.done = done ? 'yes' : 'no';
+        const span     = li.querySelector('span.check-done, span.check-todo');
+        const textSpan = li.querySelector('.item-text');
+        if (span) { span.textContent = done ? '✓' : '○'; span.className = done ? 'check-done' : 'check-todo'; }
+        if (textSpan) textSpan.style.textDecoration = done ? 'line-through' : '';
+        const ci = parseInt(li.dataset.ci);
+        const sheetRow = _sheetPos.Campaigns[ci];
+        if (sheetRow && col) writeToSheet('Campaigns', sheetRow, col, done ? 'yes' : 'no');
+        saveAll();
+      });
+    });
+  }
+
+  window.setCampStatus = function(ci, optEl, newStatus) {
+    const s = STATUS_MAP[newStatus]||STATUS_MAP['Planned'];
+    const badge = optEl.closest('.status-menu').previousElementSibling;
+    badge.textContent = newStatus + ' ▾';
+    badge.style.background = s.bg; badge.style.color = s.c;
+    optEl.closest('.status-menu').classList.remove('open');
+    const row = _sheetPos.Campaigns && _sheetPos.Campaigns[ci];
+    if (row) writeToSheet('Campaigns', row, 2, newStatus);
+    saveAll();
+  };
+
+  window.setCampProgress = function(ci, input) {
+    const val = Math.min(100, Math.max(0, parseInt(input.value)||0));
+    const bar = input.closest('.campaign-progress').querySelector('.camp-bar');
+    if (bar) bar.style.width = val + '%';
+    const row = _sheetPos.Campaigns && _sheetPos.Campaigns[ci];
+    if (row) writeToSheet('Campaigns', row, 3, val);
+    saveAll();
+  };
+
+  // ── Channels ──────────────────────────────────────────────────
+  function _applyChannels(rows) {
+    _sheetPos.Channels = rows.map(r => r._row);
+    const container = document.getElementById('channels-container');
+    if (!container || !rows.length) return;
+    const bgs = ['#e8f0fe','#fce4ec','#fff3e0','#e8f8f0','#f0f0f0','#fef5eb','#ebf2ff','#f9f0ff'];
+    let html = '';
+    rows.forEach((r,i) => {
+      const active = (r['Active']||'yes').toLowerCase() !== 'no';
+      const emoji = r['Name'].match(/\p{Emoji}/u)?.[0]||'📌';
+      const name  = r['Name'].replace(/\p{Emoji}/gu,'').trim();
+      html += `<div class="channel-row" style="${active?'':'opacity:0.5'}">
+        <div class="channel-icon" style="background:${bgs[i%bgs.length]}">${emoji}</div>
+        <div style="flex:1">
+          <div class="channel-name txt-edit" contenteditable="true" data-tab="Channels" data-row="${r._row}" data-col="1" title="Click to edit">${name}</div>
+          <div class="channel-status txt-edit" contenteditable="true" data-tab="Channels" data-row="${r._row}" data-col="2" title="Click to edit">${r['Status']||''}</div>
+        </div>
+        <div class="channel-metric" style="text-align:right">
+          <strong class="txt-edit" contenteditable="true" data-tab="Channels" data-row="${r._row}" data-col="3" title="Click to edit">${r['Metric']||''}</strong>
+          <span class="active-toggle" data-row="${r._row}" data-active="${active?'yes':'no'}" onclick="toggleChannelActive(this)"
+            style="display:block;cursor:pointer;font-size:11px;margin-top:3px;color:${active?'var(--green-dark)':'var(--gray-dark)'}">
+            ${active?'● Active':'○ Paused'}
+          </span>
+        </div>
+      </div>`;
+    });
+    container.innerHTML = html;
+
+    container.querySelectorAll('[contenteditable="true"][data-tab="Channels"]').forEach(el => {
+      el.onblur = () => {
+        writeToSheet('Channels', parseInt(el.dataset.row), parseInt(el.dataset.col), el.innerText.trim());
+        saveAll();
+      };
+    });
+  }
+
+  window.toggleChannelActive = function(el) {
+    const isActive = el.dataset.active !== 'yes';
+    el.dataset.active = isActive ? 'yes' : 'no';
+    el.textContent   = isActive ? '● Active' : '○ Paused';
+    el.style.color   = isActive ? 'var(--green-dark)' : 'var(--gray-dark)';
+    el.closest('.channel-row').style.opacity = isActive ? '1' : '0.5';
+    writeToSheet('Channels', parseInt(el.dataset.row), 4, isActive ? 'yes' : 'no');
+    saveAll();
+  };
+
+  // ── Insights ──────────────────────────────────────────────────
+  function _applyInsights(rows) {
+    _sheetPos.Insights = rows.map(r => r._row);
+    const container = document.getElementById('insights-container');
+    if (!container || !rows.length) return;
+    let html = '';
+    rows.forEach(r => {
+      const colorClass = r['Color']||'';
+      html += `<div class="insight-card ${colorClass}">
+        <span class="insight-emoji txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="1" title="Click to edit emoji">${r['Emoji']||'💡'}</span>
+        <div class="insight-title txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="2" title="Click to edit title">${r['Title']}</div>
+        <div class="insight-text txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="3" title="Click to edit text">${r['Text']||''}</div>
+        <select class="insight-color-sel" onchange="setInsightColor(this,${r._row})" style="margin-top:8px;font-size:11px;border:1px dashed #ccc;border-radius:4px;background:transparent;padding:2px 6px;cursor:pointer;color:var(--gray-dark)">
+          <option value="" ${!colorClass?'selected':''}>🎨 default</option>
+          <option value="good" ${colorClass==='good'?'selected':''}>✅ good (green)</option>
+          <option value="warn" ${colorClass==='warn'?'selected':''}>⚠️ warn (orange)</option>
+        </select>
+      </div>`;
+    });
+    container.innerHTML = html;
+
+    container.querySelectorAll('[contenteditable="true"][data-tab="Insights"]').forEach(el => {
+      el.onblur = () => {
+        writeToSheet('Insights', parseInt(el.dataset.row), parseInt(el.dataset.col), el.innerText.trim());
+        saveAll();
+      };
+    });
+  }
+
+  window.setInsightColor = function(select, row) {
+    select.closest('.insight-card').className = 'insight-card ' + select.value;
+    writeToSheet('Insights', row, 4, select.value);
+    saveAll();
+  };
+
+  // ── Ad Groups ─────────────────────────────────────────────────
+  function _applyAdGroups(rows) {
+    _sheetPos.AdGroups = rows.map(r => r._row);
+    const tbody = document.querySelector('.ad-groups-table tbody');
+    if (!tbody || !rows.length) return;
+    const barColors = ['','','orange','','green','',''];
+    let html = '';
+    rows.forEach((r, i) => {
+      const active = (r['Status']||'Active').toLowerCase() !== 'paused';
+      const pct    = parseInt(r['Budget %'])||0;
+      const leads  = r['Leads/Month']||'0';
+      const cpl    = r['Cost per Lead']||'';
+      const bc     = barColors[i]||'';
+      html += `<tr ${!active?'style="opacity:0.5"':''}>
+        <td><span class="group-name txt-edit" contenteditable="true" data-tab="AdGroups" data-row="${r._row}" data-col="1">${r['Group']||''}</span></td>
+        <td>
+          <span class="status-dot ${active?'dot-active':'dot-paused'}"></span>
+          <span class="txt-edit" contenteditable="true" data-tab="AdGroups" data-row="${r._row}" data-col="2">${r['Status']||'Active'}</span>
+        </td>
+        <td>
+          <div class="bar-wrap">
+            <div class="bar-bg"><div class="bar-fill ${bc}" id="ag-bar-${i}" style="width:${pct}%"></div></div>
+            <span class="bar-pct txt-edit" contenteditable="true" data-tab="AdGroups" data-row="${r._row}" data-col="5" data-bar="ag-bar-${i}" title="Edit %">${pct}%</span>
+          </div>
+        </td>
+        <td><input class="editable" value="${leads}" type="number" min="0" onchange="writeToSheet('AdGroups',${r._row},3,this.value);saveAll()"></td>
+        <td>$<input class="editable" value="${cpl}" type="number" min="0" onchange="writeToSheet('AdGroups',${r._row},4,this.value);saveAll()"></td>
+        <td>—</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+
+    tbody.querySelectorAll('[contenteditable="true"][data-tab="AdGroups"]').forEach(el => {
+      el.onblur = () => {
+        let val = el.innerText.trim();
+        const col = parseInt(el.dataset.col);
+        if (col === 5) {
+          val = val.replace('%','').trim();
+          const bar = document.getElementById(el.dataset.bar);
+          if (bar) bar.style.width = (parseInt(val)||0) + '%';
+        }
+        writeToSheet('AdGroups', parseInt(el.dataset.row), col, val);
+        saveAll();
+      };
+    });
+  }
+
+  const STORAGE_KEY = 'fps_dashboard_v1';
+
+  function saveAll() {
+    const data = {};
+    document.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
+      data['ce_' + i] = el.innerText.trim();
+    });
+    document.querySelectorAll('input.editable, input[id^="calc-"]').forEach((el, i) => {
+      data['inp_' + (el.id || i)] = el.value;
+    });
+    document.querySelectorAll('.checklist li').forEach((li, i) => {
+      data['chk_' + i] = li.dataset.checked || '0';
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    showSaved();
+  }
+
+  function loadAll() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    document.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
+      if (data['ce_' + i] !== undefined) el.innerText = data['ce_' + i];
+    });
+    document.querySelectorAll('input.editable, input[id^="calc-"]').forEach((el, i) => {
+      const key = 'inp_' + (el.id || i);
+      if (data[key] !== undefined) el.value = data[key];
+    });
+    document.querySelectorAll('.checklist li').forEach((li, i) => {
+      if (data['chk_' + i] === '1') applyCheckStyle(li, true);
+    });
+  }
+
+  function resetAll() {
+    if (!confirm('Resetar todos os dados para os valores padrão?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+
+  function showSaved() {
+    let badge = document.getElementById('save-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = 'save-badge';
+      badge.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#27ae60;color:white;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:9999;transition:opacity 0.4s';
+      document.body.appendChild(badge);
+    }
+    badge.textContent = '✓ Salvo automaticamente';
+    badge.style.opacity = '1';
+    clearTimeout(badge._t);
+    badge._t = setTimeout(() => badge.style.opacity = '0', 1800);
+  }
+
+  function applyCheckStyle(li, checked) {
+    const span = li.querySelector('span');
+    if (checked) {
+      span.textContent = '✓';
+      span.className = 'check-done';
+      li.dataset.checked = '1';
+    } else {
+      span.textContent = '○';
+      span.className = 'check-todo';
+      li.dataset.checked = '0';
+    }
+  }
+
+  document.querySelectorAll('.checklist li').forEach(li => {
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => {
+      const isChecked = li.dataset.checked === '1';
+      applyCheckStyle(li, !isChecked);
+      saveAll();
+    });
+  });
+
+  document.addEventListener('input', () => saveAll());
+  document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+    el.addEventListener('blur', () => saveAll());
+  });
+
+  const STATUS_COLORS = {
+    'badge-green':  { bg:'#e8f8f0', color:'#27ae60' },
+    'badge-orange': { bg:'#fef5eb', color:'#e67e22' },
+    'badge-blue':   { bg:'#ebf2ff', color:'#2352a0' },
+    'badge-gray':   { bg:'#f0f0f0', color:'#999' }
+  };
+
+  function toggleStatusMenu(badge) {
+    document.querySelectorAll('.status-menu.open').forEach(m => {
+      if (m !== badge.nextElementSibling) m.classList.remove('open');
+    });
+    badge.nextElementSibling.classList.toggle('open');
+  }
+
+  function setStatus(option, label, colorClass) {
+    const menu = option.closest('.status-menu');
+    const badge = menu.previousElementSibling;
+    badge.textContent = label + ' ▾';
+    badge.className = 'badge camp-status';
+    badge.style.background = STATUS_COLORS[colorClass]?.bg || '#f0f0f0';
+    badge.style.color = STATUS_COLORS[colorClass]?.color || '#999';
+    menu.classList.remove('open');
+    saveAll();
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.status-dropdown')) {
+      document.querySelectorAll('.status-menu.open').forEach(m => m.classList.remove('open'));
+    }
+  });
+
+  function updateBar(input) {
+    const val = Math.min(100, Math.max(0, parseInt(input.value) || 0));
+    const bar = input.closest('.campaign-progress').querySelector('.camp-bar');
+    if (bar) bar.style.width = val + '%';
+    saveAll();
+  }
+
+  function addItem(listId) {
+    const ul = document.getElementById(listId);
+    const li = document.createElement('li');
+    li.dataset.checked = '0';
+    li.style.cursor = 'pointer';
+    li.innerHTML = `<span class="check-todo">○</span> <span contenteditable="true" class="camp-title-edit" style="font-size:13px;font-weight:400">New item</span><span class="del-item" onclick="delItem(this)">✕</span>`;
+    li.addEventListener('click', e => {
+      if (e.target.classList.contains('del-item') || e.target.isContentEditable) return;
+      const isChecked = li.dataset.checked === '1';
+      applyCheckStyle(li, !isChecked);
+      saveAll();
+    });
+    ul.appendChild(li);
+    li.querySelector('[contenteditable]').focus();
+    saveAll();
+  }
+
+  function delItem(btn) {
+    if (confirm('Remove this item?')) {
+      btn.closest('li').remove();
+      saveAll();
+    }
+  }
+
+  // ── TAB NAVIGATION ────────────────────────────────────────────
+  function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // ── LAST UPDATE TIMESTAMP ─────────────────────────────────────
+  const now = new Date();
+  document.getElementById('updateTime').textContent = 'Updated: ' + now.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+
+  // ── ROI CALCULATOR ────────────────────────────────────────────
+  function calcROI() {
+    const spend = parseFloat(document.getElementById('calc-spend').value) || 0;
+    const cpl = parseFloat(document.getElementById('calc-cpl').value) || 1;
+    const rate = parseFloat(document.getElementById('calc-rate').value) || 0;
+    const contract = parseFloat(document.getElementById('calc-contract').value) || 0;
+    const months = parseFloat(document.getElementById('calc-months').value) || 1;
+
+    const leads = Math.round(spend / cpl);
+    const contracts = Math.round(leads * (rate / 100));
+    const revenue = contracts * contract * months;
+    const roi = spend > 0 ? (((revenue - spend) / spend) * 100).toFixed(0) : 0;
+    const costPerContract = contracts > 0 ? (spend / contracts).toFixed(0) : '—';
+
+    document.getElementById('roi-results').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--gray-dark)">Leads generated / month</span>
+        <strong style="font-size:18px">${leads}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--gray-dark)">Contracts closed / month</span>
+        <strong style="font-size:18px">${contracts}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--gray-dark)">Cost per contract acquired</span>
+        <strong style="font-size:18px;color:var(--orange)">$${costPerContract}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--gray-dark)">Lifetime contract revenue</span>
+        <strong style="font-size:18px;color:var(--green-dark)">$${revenue.toLocaleString()}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:${roi>0?'#e8f8f0':'#fdecea'};border-radius:8px;margin-top:4px">
+        <span style="font-size:13px;font-weight:600">Estimated ROI</span>
+        <strong style="font-size:22px;color:${roi>0?'var(--green-dark)':'var(--red)'}">${roi}%</strong>
+      </div>
+    `;
+  }
+
+  // ── COSTS TAB ─────────────────────────────────────────────────
+  function recalcCosts() {
+    const sections = [
+      { body: 'software-body', badge: 'software-subtotal' },
+      { body: 'print-body',    badge: 'print-subtotal'    },
+      { body: 'other-body',    badge: 'other-subtotal'    },
+    ];
+    let grandOther = 0;
+    sections.forEach(sec => {
+      let sub = 0;
+      document.querySelectorAll(`#${sec.body} .cost-val`).forEach(inp => {
+        sub += parseFloat(inp.value) || 0;
+      });
+      grandOther += sub;
+      const badge = document.getElementById(sec.badge);
+      if (badge) badge.textContent = '$' + sub.toLocaleString() + ' / mo';
+    });
+
+    const adsEl = document.getElementById('calc-spend');
+    const ads = parseFloat(adsEl ? adsEl.value : 0) || 2000;
+
+    document.getElementById('costs-total-display').textContent  = '$' + grandOther.toLocaleString();
+    document.getElementById('costs-ads-display').textContent    = '$' + ads.toLocaleString();
+    document.getElementById('costs-grand-display').textContent  = '$' + (grandOther + ads).toLocaleString();
+    saveAll();
+  }
+
+  function addCostRow(bodyId) {
+    const tbody = document.getElementById(bodyId);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="cost-category txt-edit" contenteditable="true">New item</span></td>
+      <td><span style="color:var(--gray-dark)">$</span><input class="cost-input cost-val" type="number" min="0" value="0" oninput="recalcCosts()"></td>
+      <td><input class="cost-note" type="text" placeholder="Add note…"></td>
+      <td><span class="del-cost" onclick="delCostRow(this)" title="Remove" style="opacity:1">✕</span></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelectorAll('[contenteditable]').forEach(el => {
+      el.addEventListener('blur', () => saveAll());
+    });
+    tr.querySelectorAll('input').forEach(el => {
+      el.addEventListener('change', () => saveAll());
+    });
+    tr.querySelector('[contenteditable]').focus();
+    recalcCosts();
+  }
+
+  function delCostRow(btn) {
+    if (confirm('Remove this cost item?')) {
+      btn.closest('tr').remove();
+      recalcCosts();
+    }
+  }
+
+  document.querySelectorAll('.cost-note, .cost-input').forEach(el => {
+    el.addEventListener('change', () => saveAll());
+  });
+  document.querySelectorAll('#tab-costs [contenteditable]').forEach(el => {
+    el.addEventListener('blur', () => saveAll());
+  });
+
+  // Init
+  loadAll();
+  calcROI();
+  recalcCosts();
+  loadFromSheets();
+  setInterval(loadFromSheets, 5 * 60 * 1000);
+</script>
+</body>
+</html>
