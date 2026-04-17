@@ -1252,6 +1252,16 @@
     else console.warn('Write error:', r.error);
   };
 
+  function loadTabFromGviz(tab) {
+    const old = document.getElementById('jsonp-' + tab);
+    if (old) old.remove();
+    const s = document.createElement('script');
+    s.id = 'jsonp-' + tab;
+    s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=reqId:0;responseHandler:handle_gviz_${tab}&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`;
+    s.onerror = () => { _loaded[tab] = 'err'; _checkDone(); };
+    document.head.appendChild(s);
+  }
+
   function loadFromSheets() {
     _loaded = {};
     const ind = document.getElementById('sheets-indicator');
@@ -1267,12 +1277,7 @@
       document.head.appendChild(s);
     } else {
       TABS.forEach(tab => {
-        const old = document.getElementById('jsonp-'+tab); if (old) old.remove();
-        const s = document.createElement('script');
-        s.id = 'jsonp-'+tab;
-        s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=reqId:0;responseHandler:handle_gviz_${tab}&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`;
-        s.onerror = () => { _loaded[tab]='err'; _checkDone(); };
-        document.head.appendChild(s);
+        loadTabFromGviz(tab);
       });
     }
   }
@@ -1284,7 +1289,12 @@
     if (data.Channels)  _applyChannels(_parseRows(data.Channels));
     if (data.Insights)  _applyInsights(_parseRows(data.Insights));
     if (data.AdGroups)  _applyAdGroups(_parseRows(data.AdGroups));
-    if (data.Opportunities) _applyOpportunities(_parseRows(data.Opportunities));
+    if (data.Opportunities) {
+      _applyOpportunities(_parseRows(data.Opportunities));
+      _loaded.Opportunities = 'ok';
+    } else {
+      loadTabFromGviz('Opportunities');
+    }
     const ind = document.getElementById('sheets-indicator');
     if (ind) { ind.textContent = '🟢 Live — Google Sheets ✎'; ind.style.color = '#4ade80'; }
   };
