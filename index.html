@@ -81,6 +81,13 @@
   .last-update { font-size: 11px; opacity: 0.55; margin-top: 4px; }
   #sheets-indicator { font-size: 11px; opacity: 0.75; margin-top: 2px; cursor: pointer; transition: opacity 0.2s; }
   #sheets-indicator:hover { opacity: 1; }
+  .build-id {
+    font-size: 10px;
+    opacity: 0.5;
+    margin-top: 2px;
+    letter-spacing: 0.25px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
 
   /* Edit Mode Toggle */
   .edit-btn {
@@ -171,6 +178,13 @@
   body:not(.edit-mode) .camp-title-edit,
   body:not(.edit-mode) .camp-note-edit {
     pointer-events: none;
+  }
+
+  /* Opportunity stays always editable, even outside global Edit mode */
+  body:not(.edit-mode) #opportunity-title,
+  body:not(.edit-mode) #opportunity-text {
+    pointer-events: auto;
+    user-select: text;
   }
 
   /* In edit mode — enable editing hover/focus */
@@ -561,7 +575,7 @@
   }
   .opportunity-banner strong { font-size: 14px; font-weight: 700; display: block; margin-bottom: 6px; color: var(--text); }
   .opportunity-banner p { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
-.opportunity-edit-input,
+  .opportunity-edit-input,
   .opportunity-edit-text {
     width: 100%;
     border: 1px solid transparent;
@@ -588,6 +602,11 @@
     outline: 2px solid var(--blue-light);
     border-color: transparent;
     background: rgba(37,99,235,0.06);
+  }
+  .opportunity-save-status {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--gray-dark);
   }
 
   /* ── RESPONSIVE ── */
@@ -627,6 +646,7 @@
       <div class="period-badge">📅 Q2 · April–June 2026</div>
       <div class="last-update" id="updateTime">Updated: —</div>
       <div id="sheets-indicator" onclick="loadFromSheets()">⚪ Google Sheets not connected</div>
+      <div class="build-id" id="build-id">Build: loading…</div>
     </div>
     <button class="edit-btn" id="edit-btn" onclick="toggleEditMode()" title="Enable editing">
       ✏️ Edit
@@ -905,8 +925,9 @@
     </div>
 
     <div class="opportunity-banner">
-      <strong>💡 Floor Cleaning Opportunity</strong>
-      <p>Floor Cleaning (strip &amp; wax, carpet, floor care) has the <strong>highest profit margin</strong> of all FPS services, but is getting only 15% of budget. Recommend increasing its share to 25–30% and creating a dedicated landing page. Also pairs directly with the Schools summer campaign.</p>
+      <input id="opportunity-title" class="opportunity-edit-input" type="text" value="💡 Floor Cleaning Opportunity">
+      <textarea id="opportunity-text" class="opportunity-edit-text">Floor Cleaning (strip &amp; wax, carpet, floor care) has the highest profit margin of all FPS services, but is getting only 15% of budget. Recommend increasing its share to 25–30% and creating a dedicated landing page. Also pairs directly with the Schools summer campaign.</textarea>
+      <div id="opportunity-save-status" class="opportunity-save-status">You can edit this card directly. Changes save automatically.</div>
     </div>
   </div>
 
@@ -1199,8 +1220,9 @@
   // ── GOOGLE SHEETS INTEGRATION ─────────────────────────────────
   const SHEET_ID = '1t4lS0Ca0m4h4fYO_zEX0IjHUyiRTezxnmtDKhjwITYg';
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUnyaT5oUeINkSbWbEk0etfg9XRj29KMKXV9430X0zLbJiy5PQMC4utYFByimgeKml/exec';
+  const BUILD_VERSION = '2026-04-17-opportunity-input-hotfix';
 
-  const TABS = ['KPIs','Campaigns','Channels','Insights','AdGroups'];
+  const TABS = ['KPIs','Campaigns','Channels','Insights','AdGroups','Opportunities'];
   let _loaded = {};
   let _sheetPos = {};
 
@@ -1262,6 +1284,7 @@
     if (data.Channels)  _applyChannels(_parseRows(data.Channels));
     if (data.Insights)  _applyInsights(_parseRows(data.Insights));
     if (data.AdGroups)  _applyAdGroups(_parseRows(data.AdGroups));
+    if (data.Opportunities) _applyOpportunities(_parseRows(data.Opportunities));
     const ind = document.getElementById('sheets-indicator');
     if (ind) { ind.textContent = '🟢 Live — Google Sheets ✎'; ind.style.color = '#4ade80'; }
   };
@@ -1288,6 +1311,7 @@
   window.handle_gviz_Channels  = r=>{ _applyChannels(_gvizToRows(r));  _loaded.Channels='ok';  _checkDone(); };
   window.handle_gviz_Insights  = r=>{ _applyInsights(_gvizToRows(r));  _loaded.Insights='ok';  _checkDone(); };
   window.handle_gviz_AdGroups  = r=>{ _applyAdGroups(_gvizToRows(r));  _loaded.AdGroups='ok';  _checkDone(); };
+  window.handle_gviz_Opportunities = r=>{ _applyOpportunities(_gvizToRows(r)); _loaded.Opportunities='ok'; _checkDone(); };
 
   // ── KPIs ──────────────────────────────────────────────────────
   const KPI_LABELS = ['Weekly Ad Spend','Leads This Month','Cost per Lead','Contracts Closed'];
@@ -1549,6 +1573,64 @@
     saveAll();
   };
 
+  // ── Opportunity Banner (Google Ads) ───────────────────────────
+  let _oppWriteTimer = null;
+  function _setOpportunityStatus(msg) {
+    const el = document.getElementById('opportunity-save-status');
+    if (el) el.textContent = msg;
+  }
+  function _queueOpportunityWrite(col, value) {
+    const sheetRow = _sheetPos.Opportunities;
+    clearTimeout(_oppWriteTimer);
+    if (!sheetRow) {
+      _setOpportunityStatus('Saved locally. Waiting for Opportunities sheet sync.');
+      return;
+    }
+    _setOpportunityStatus('Saving…');
+    _oppWriteTimer = setTimeout(() => {
+      writeToSheet('Opportunities', sheetRow, col, value, () => _setOpportunityStatus('Saved to sheet ✓'));
+    }, 350);
+  }
+
+  function _applyOpportunities(rows) {
+    const titleEl = document.getElementById('opportunity-title');
+    const textEl = document.getElementById('opportunity-text');
+    if (!titleEl || !textEl) return;
+
+    const row = rows && rows.length ? rows[0] : null;
+    if (row) {
+      _sheetPos.Opportunities = row._row;
+      if (document.activeElement !== titleEl) titleEl.value = row['Title'] ?? '';
+      if (document.activeElement !== textEl)  textEl.value = row['Text'] ?? '';
+      _setOpportunityStatus(`Connected to Opportunities row ${_sheetPos.Opportunities}.`);
+    } else if (!_sheetPos.Opportunities) {
+      // Fallback so dashboard edits still write to row 2 when the sheet is empty.
+      _sheetPos.Opportunities = 2;
+      _setOpportunityStatus('Connected to Opportunities row 2.');
+    }
+
+    titleEl.oninput = () => {
+      _queueOpportunityWrite(1, titleEl.value.trim());
+      saveAll();
+    };
+    textEl.oninput = () => {
+      _queueOpportunityWrite(2, textEl.value.trim());
+      saveAll();
+    };
+    titleEl.onblur = () => {
+      clearTimeout(_oppWriteTimer);
+      _setOpportunityStatus('Saving…');
+      writeToSheet('Opportunities', _sheetPos.Opportunities, 1, titleEl.value.trim(), () => _setOpportunityStatus('Saved to sheet ✓'));
+      saveAll();
+    };
+    textEl.onblur = () => {
+      clearTimeout(_oppWriteTimer);
+      _setOpportunityStatus('Saving…');
+      writeToSheet('Opportunities', _sheetPos.Opportunities, 2, textEl.value.trim(), () => _setOpportunityStatus('Saved to sheet ✓'));
+      saveAll();
+    };
+  }
+
   // ── Ad Groups ─────────────────────────────────────────────────
   function _applyAdGroups(rows) {
     _sheetPos.AdGroups = rows.map(r => r._row);
@@ -1604,7 +1686,7 @@
     document.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
       data['ce_' + i] = el.innerText.trim();
     });
-    document.querySelectorAll('input.editable, input[id^="calc-"]').forEach((el, i) => {
+    document.querySelectorAll('input.editable, input[id^="calc-"], #opportunity-title, #opportunity-text').forEach((el, i) => {
       data['inp_' + (el.id || i)] = el.value;
     });
     document.querySelectorAll('.checklist li').forEach((li, i) => {
@@ -1621,7 +1703,7 @@
     document.querySelectorAll('[contenteditable="true"]').forEach((el, i) => {
       if (data['ce_' + i] !== undefined) el.innerText = data['ce_' + i];
     });
-    document.querySelectorAll('input.editable, input[id^="calc-"]').forEach((el, i) => {
+    document.querySelectorAll('input.editable, input[id^="calc-"], #opportunity-title, #opportunity-text').forEach((el, i) => {
       const key = 'inp_' + (el.id || i);
       if (data[key] !== undefined) el.value = data[key];
     });
@@ -1798,7 +1880,10 @@
   });
 
   // Init
+  const buildEl = document.getElementById('build-id');
+  if (buildEl) buildEl.textContent = `Build: ${BUILD_VERSION}`;
   loadAll();
+  _applyOpportunities([]);
   calcROI();
   recalcCosts();
   loadFromSheets();
