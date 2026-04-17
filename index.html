@@ -81,13 +81,6 @@
   .last-update { font-size: 11px; opacity: 0.55; margin-top: 4px; }
   #sheets-indicator { font-size: 11px; opacity: 0.75; margin-top: 2px; cursor: pointer; transition: opacity 0.2s; }
   #sheets-indicator:hover { opacity: 1; }
-  .build-id {
-    font-size: 10px;
-    opacity: 0.5;
-    margin-top: 2px;
-    letter-spacing: 0.25px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  }
 
   /* Edit Mode Toggle */
   .edit-btn {
@@ -178,13 +171,6 @@
   body:not(.edit-mode) .camp-title-edit,
   body:not(.edit-mode) .camp-note-edit {
     pointer-events: none;
-  }
-
-  /* Opportunity stays always editable, even outside global Edit mode */
-  body:not(.edit-mode) #opportunity-title,
-  body:not(.edit-mode) #opportunity-text {
-    pointer-events: auto;
-    user-select: text;
   }
 
   /* In edit mode — enable editing hover/focus */
@@ -646,7 +632,6 @@
       <div class="period-badge">📅 Q2 · April–June 2026</div>
       <div class="last-update" id="updateTime">Updated: —</div>
       <div id="sheets-indicator" onclick="loadFromSheets()">⚪ Google Sheets not connected</div>
-      <div class="build-id" id="build-id">Build: loading…</div>
     </div>
     <button class="edit-btn" id="edit-btn" onclick="toggleEditMode()" title="Enable editing">
       ✏️ Edit
@@ -1220,7 +1205,6 @@
   // ── GOOGLE SHEETS INTEGRATION ─────────────────────────────────
   const SHEET_ID = '1t4lS0Ca0m4h4fYO_zEX0IjHUyiRTezxnmtDKhjwITYg';
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUnyaT5oUeINkSbWbEk0etfg9XRj29KMKXV9430X0zLbJiy5PQMC4utYFByimgeKml/exec';
-  const BUILD_VERSION = '2026-04-17-opportunity-input-hotfix';
 
   const TABS = ['KPIs','Campaigns','Channels','Insights','AdGroups','Opportunities'];
   let _loaded = {};
@@ -1350,13 +1334,6 @@
         valEl.innerText = r['Value'];
         valEl.onblur = () => { saveAll(); writeToSheet('KPIs', r._row, 2, valEl.innerText.trim()); };
       }
-      const lblEl = cards[idx].querySelector('.kpi-label');
-      if (lblEl) {
-        lblEl.contentEditable = 'true';
-        lblEl.classList.add('txt-edit');
-        lblEl.innerText = r['Metric'];
-        lblEl.onblur = () => writeToSheet('KPIs', r._row, 1, lblEl.innerText.trim());
-      }
     });
     const spend     = parseFloat(rows.find(r=>r['Metric']==='Weekly Ad Spend')?.Value)||0;
     const cpl       = parseFloat(rows.find(r=>r['Metric']==='Cost per Lead')?.Value)||0;
@@ -1365,6 +1342,12 @@
 
     if (spend) { const el=document.getElementById('calc-spend'); if(el) el.value=spend*4; }
     if (cpl)   { const el=document.getElementById('calc-cpl');   if(el) el.value=cpl; }
+
+    // Sync Google Ads summary KPI cards from Sheets data
+    const adsCards = document.querySelectorAll('#tab-google .kpi-card');
+    if (adsCards[0]) { const e=adsCards[0].querySelector('.editable'); if(e) e.innerText=spend||'—'; }
+    if (adsCards[1]) { const e=adsCards[1].querySelector('.editable'); if(e) e.innerText=cpl||'—'; }
+    if (adsCards[2]) { const e=adsCards[2].querySelector('.editable'); if(e) e.innerText=(cpl>0?Math.round(spend/cpl):'—'); }
 
     const rSpend = document.getElementById('roi-spend');
     const rLeads = document.getElementById('roi-leads');
@@ -1609,7 +1592,7 @@
       _setOpportunityStatus('Saved locally. Waiting for Opportunities sheet sync.');
       return;
     }
-    _setOpportunityStatus('Saving…');
+    _setOpportunityStatus('Saving...');
     _oppWriteTimer = setTimeout(() => {
       writeToSheet('Opportunities', sheetRow, col, value, () => _setOpportunityStatus('Saved to sheet ✓'));
     }, 350);
@@ -1624,10 +1607,9 @@
     if (row) {
       _sheetPos.Opportunities = row._row;
       if (document.activeElement !== titleEl) titleEl.value = row['Title'] ?? '';
-      if (document.activeElement !== textEl)  textEl.value = row['Text'] ?? '';
+      if (document.activeElement !== textEl) textEl.value = row['Text'] ?? '';
       _setOpportunityStatus(`Connected to Opportunities row ${_sheetPos.Opportunities}.`);
     } else if (!_sheetPos.Opportunities) {
-      // Fallback so dashboard edits still write to row 2 when the sheet is empty.
       _sheetPos.Opportunities = 2;
       _setOpportunityStatus('Connected to Opportunities row 2.');
     }
@@ -1642,13 +1624,13 @@
     };
     titleEl.onblur = () => {
       clearTimeout(_oppWriteTimer);
-      _setOpportunityStatus('Saving…');
+      _setOpportunityStatus('Saving...');
       writeToSheet('Opportunities', _sheetPos.Opportunities, 1, titleEl.value.trim(), () => _setOpportunityStatus('Saved to sheet ✓'));
       saveAll();
     };
     textEl.onblur = () => {
       clearTimeout(_oppWriteTimer);
-      _setOpportunityStatus('Saving…');
+      _setOpportunityStatus('Saving...');
       writeToSheet('Opportunities', _sheetPos.Opportunities, 2, textEl.value.trim(), () => _setOpportunityStatus('Saved to sheet ✓'));
       saveAll();
     };
@@ -1702,7 +1684,7 @@
   }
 
   // ── LOCAL STORAGE ─────────────────────────────────────────────
-  const STORAGE_KEY = 'fps_dashboard_v2';
+  const STORAGE_KEY = 'fps_dashboard_v3';
 
   function saveAll() {
     const data = {};
@@ -1903,8 +1885,6 @@
   });
 
   // Init
-  const buildEl = document.getElementById('build-id');
-  if (buildEl) buildEl.textContent = `Build: ${BUILD_VERSION}`;
   loadAll();
   _applyOpportunities([]);
   calcROI();
