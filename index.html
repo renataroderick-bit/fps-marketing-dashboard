@@ -1305,8 +1305,15 @@
 
   function _gvizToRows(res) {
     try {
-      const cols = res.table.cols.map(c=>(c.label||'').trim());
-      return res.table.rows.map((row,i)=>{
+      let cols = res.table.cols.map(c=>(c.label||'').trim());
+      let rows = res.table.rows;
+      // If all column labels are empty, gviz didn't detect headers —
+      // treat the first data row as the header row instead
+      if (cols.every(c=>!c) && rows.length > 0) {
+        cols = (rows[0].c||[]).map(c=>(c&&c.v!=null?String(c.v):'').trim());
+        rows = rows.slice(1);
+      }
+      return rows.map((row,i)=>{
         const obj={_row:i+2};
         cols.forEach((h,j)=>{ const cell=row.c&&row.c[j]; obj[h]=(cell&&cell.v!==null)?String(cell.v):''; });
         return obj;
