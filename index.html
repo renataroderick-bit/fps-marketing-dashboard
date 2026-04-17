@@ -561,6 +561,34 @@
   }
   .opportunity-banner strong { font-size: 14px; font-weight: 700; display: block; margin-bottom: 6px; color: var(--text); }
   .opportunity-banner p { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
+.opportunity-edit-input,
+  .opportunity-edit-text {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+  }
+  .opportunity-edit-input {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    padding: 2px 4px;
+  }
+  .opportunity-edit-text {
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 2px 4px;
+    min-height: 66px;
+    resize: vertical;
+  }
+  .opportunity-edit-input:focus,
+  .opportunity-edit-text:focus {
+    outline: 2px solid var(--blue-light);
+    border-color: transparent;
+    background: rgba(37,99,235,0.06);
+  }
 
   /* ── RESPONSIVE ── */
   @media (max-width: 900px) {
