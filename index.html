@@ -778,78 +778,6 @@
       <div class="section">
         <div class="section-header">
           <div>
-            <div class="section-title">Lead Pipeline</div>
-            <div class="section-sub">Total pipeline plus current-month pipeline</div>
-          </div>
-          <span class="badge badge-green" id="open-followups-badge">0 open follow-ups</span>
-        </div>
-        <div class="pipeline-stack">
-          <div>
-            <div class="pipeline-panel-title">Total Pipeline</div>
-            <div class="pipeline-stage-grid" id="pipeline-stages-total">
-              <div class="pipeline-stage-card new-stage">
-                <div class="stage-label">New</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Needs first touch</div>
-              </div>
-              <div class="pipeline-stage-card contacted-stage">
-                <div class="stage-label">Contacted</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">In follow-up</div>
-              </div>
-              <div class="pipeline-stage-card walkthrough-stage">
-                <div class="stage-label">Walkthrough</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Qualified visits</div>
-              </div>
-              <div class="pipeline-stage-card closed-stage">
-                <div class="stage-label">Closed</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Won deals</div>
-              </div>
-              <div class="pipeline-stage-card lost-stage">
-                <div class="stage-label">Lost</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Dropped or lost</div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div class="pipeline-panel-title">This Month</div>
-            <div class="pipeline-stage-grid" id="pipeline-stages-month">
-              <div class="pipeline-stage-card new-stage">
-                <div class="stage-label">New</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Created this month</div>
-              </div>
-              <div class="pipeline-stage-card contacted-stage">
-                <div class="stage-label">Contacted</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Worked this month</div>
-              </div>
-              <div class="pipeline-stage-card walkthrough-stage">
-                <div class="stage-label">Walkthrough</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Visits this month</div>
-              </div>
-              <div class="pipeline-stage-card closed-stage">
-                <div class="stage-label">Closed</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Wins this month</div>
-              </div>
-              <div class="pipeline-stage-card lost-stage">
-                <div class="stage-label">Lost</div>
-                <div class="stage-value">0</div>
-                <div class="stage-sub">Lost this month</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-header">
-          <div>
             <div class="section-title">Top Lead Sources</div>
             <div class="section-sub">Current-month lead volume</div>
           </div>
@@ -1458,8 +1386,6 @@
       loadTabFromGviz('Opportunities');
     }
     if (data.LeadSummary) _applyLeadSummary(_parseRows(data.LeadSummary));
-    if (data.LeadPipeline) _applyLeadPipeline(_parseRows(data.LeadPipeline), 'pipeline-stages-total');
-    if (data.LeadPipelineMonth) _applyLeadPipeline(_parseRows(data.LeadPipelineMonth), 'pipeline-stages-month', true);
     if (data.LeadSources) _applyLeadSources(_parseRows(data.LeadSources));
     const ind = document.getElementById('sheets-indicator');
     if (ind) { ind.textContent = '🟢 Live — Google Sheets ✎'; ind.style.color = '#4ade80'; }
@@ -1550,39 +1476,10 @@
     const map = {};
     rows.forEach(r => { map[r['Metric']] = r['Value']; });
 
-    const openBadge = document.getElementById('open-followups-badge');
-    if (openBadge) {
-      const open = map['Open Follow Ups'] || 0;
-      openBadge.textContent = `${open} open follow-ups`;
-    }
-
     const topBadge = document.getElementById('top-source-badge');
     if (topBadge) {
       topBadge.textContent = map['Top Lead Source'] || 'No source yet';
     }
-  }
-
-  function _applyLeadPipeline(rows, containerId, isMonthView) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    const stageMeta = [
-      { key: 'New', cls: 'new-stage', sub: isMonthView ? 'Created this month' : 'Needs first touch' },
-      { key: 'Contacted', cls: 'contacted-stage', sub: isMonthView ? 'Worked this month' : 'In follow-up' },
-      { key: 'Walkthrough', cls: 'walkthrough-stage', sub: isMonthView ? 'Visits this month' : 'Qualified visits' },
-      { key: 'Closed', cls: 'closed-stage', sub: isMonthView ? 'Wins this month' : 'Won deals' },
-      { key: 'Lost', cls: 'lost-stage', sub: isMonthView ? 'Lost this month' : 'Dropped or lost' }
-    ];
-    const map = {};
-    rows.forEach(r => { map[r['Stage']] = r['Count']; });
-
-    container.innerHTML = stageMeta.map(stage => `
-      <div class="pipeline-stage-card ${stage.cls}">
-        <div class="stage-label">${stage.key}</div>
-        <div class="stage-value">${map[stage.key] || 0}</div>
-        <div class="stage-sub">${stage.sub}</div>
-      </div>
-    `).join('');
   }
 
   function _applyLeadSources(rows) {
