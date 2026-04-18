@@ -1442,8 +1442,9 @@
     const leads     = parseFloat(rows.find(r=>r['Metric']==='Leads This Month')?.Value)||0;
     const contracts = parseFloat(rows.find(r=>r['Metric']==='Contracts Closed')?.Value)||0;
 
-    if (spend) { const el=document.getElementById('calc-spend'); if(el) el.value=spend*4; }
-    if (cpl)   { const el=document.getElementById('calc-cpl');   if(el) el.value=cpl; }
+    // Keep calculators in sync even when values are 0.
+    { const el=document.getElementById('calc-spend'); if(el) el.value = spend ? (spend * 4) : 0; }
+    { const el=document.getElementById('calc-cpl');   if(el) el.value = cpl || 0; }
 
     // Sync Google Ads summary KPI cards from Sheets data
     const adsCards = document.querySelectorAll('#tab-google .kpi-card');
@@ -1455,18 +1456,16 @@
     const rLeads = document.getElementById('roi-leads');
     const rClose = document.getElementById('roi-closed');
     const rRatio = document.getElementById('roi-ratio');
-    if (rSpend && spend) rSpend.textContent = (spend*4).toLocaleString();
-    if (rLeads && leads) rLeads.textContent = leads;
-    if (rClose && contracts) rClose.textContent = contracts;
+    if (rSpend) rSpend.textContent = (spend * 4).toLocaleString();
+    if (rLeads) rLeads.textContent = leads;
+    if (rClose) rClose.textContent = contracts;
     if (rRatio) {
-      if (leads > 0 && contracts > 0) {
-        const rate = ((contracts / leads) * 100).toFixed(0);
-        rRatio.textContent = rate + '%';
-        const rateInput = document.getElementById('calc-rate');
-        if (rateInput) rateInput.value = rate;
-      } else {
-        rRatio.textContent = '—';
-      }
+      // Show 0% instead of em dash when there are no closed deals yet.
+      const rate = leads > 0 ? ((contracts / leads) * 100) : 0;
+      const rateRounded = isFinite(rate) ? String(Math.round(rate)) : '0';
+      rRatio.textContent = rateRounded + '%';
+      const rateInput = document.getElementById('calc-rate');
+      if (rateInput) rateInput.value = rateRounded;
     }
     calcROI();
     recalcCosts();
@@ -1563,26 +1562,16 @@
     const activeCount = activeGroups.length;
     const pausedCount = rows.length - activeCount;
     const monthlyLeads = rows.reduce((sum, r) => sum + (Number(r['Leads/Month']) || 0), 0);
-    const weightedCost = rows.reduce((sum, r) => {
-      const leads = Number(r['Leads/Month']) || 0;
-      const cpl = Number(r['Cost per Lead']) || 0;
-      return sum + (leads * cpl);
-    }, 0);
-    const avgCpl = monthlyLeads > 0 ? Math.round((weightedCost / monthlyLeads) * 100) / 100 : 0;
     const estWeeklyLeads = monthlyLeads > 0 ? Math.round((monthlyLeads / 4.33) * 10) / 10 : 0;
 
     const badge = document.getElementById('adgroups-summary-badge');
     if (badge) badge.textContent = `${activeCount} Active · ${pausedCount} Paused`;
 
     const spendSub = document.getElementById('google-kpi-spend-sub');
-    const cplEl = document.getElementById('google-kpi-cpl');
-    const cplSub = document.getElementById('google-kpi-cpl-sub');
     const leadsEl = document.getElementById('google-kpi-leads');
     const leadsSub = document.getElementById('google-kpi-leads-sub');
 
     if (spendSub) spendSub.textContent = `across ${activeCount} active groups`;
-    if (cplEl && avgCpl) cplEl.innerText = avgCpl;
-    if (cplSub) cplSub.textContent = avgCpl ? 'weighted by ad group leads' : 'waiting for live ad group data';
     if (leadsEl) leadsEl.innerText = estWeeklyLeads || 0;
     if (leadsSub) leadsSub.textContent = 'based on last 30 days ad group performance';
   }
