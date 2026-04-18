@@ -784,11 +784,38 @@
           <span class="badge badge-blue" id="top-source-badge">No source yet</span>
         </div>
         <div class="card" style="padding:18px 20px">
-          <div class="source-list" id="lead-sources-container">
-            <div class="source-item">
-              <div class="source-name">Waiting for live lead data…</div>
-              <div class="source-count">0</div>
-              <div class="source-mini-bar"><div class="source-mini-fill" style="width:0%"></div></div>
+          <div style="display:grid;grid-template-columns:1.3fr .9fr;gap:18px;align-items:stretch">
+            <div class="source-list" id="lead-sources-container">
+              <div class="source-item">
+                <div class="source-name">Waiting for live lead data…</div>
+                <div class="source-count">0</div>
+                <div class="source-mini-bar"><div class="source-mini-fill" style="width:0%"></div></div>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:14px;padding:14px 14px 12px;background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);display:flex;flex-direction:column;justify-content:space-between">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                <div>
+                  <div style="font-size:12px;color:var(--gray-dark);font-weight:700;letter-spacing:.02em">Google Ads</div>
+                  <div style="font-size:12px;color:var(--gray-dark);margin-top:2px">Spend this month (MTD)</div>
+                </div>
+                <span class="badge badge-blue" id="ads-mtd-badge">MTD</span>
+              </div>
+
+              <div style="margin-top:10px">
+                <div style="font-size:34px;font-weight:800;letter-spacing:-0.02em;line-height:1">
+                  $<span id="ads-mtd-value">—</span>
+                </div>
+                <div style="margin-top:8px;font-size:12px;color:var(--gray-dark)" id="ads-mtd-sub">Waiting for Google Ads sync</div>
+              </div>
+
+              <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px">
+                <div style="font-size:12px;color:var(--gray-dark)">Pacing</div>
+                <div style="text-align:right">
+                  <div style="font-size:14px;font-weight:800" id="ads-mtd-pace">—</div>
+                  <div style="font-size:12px;color:var(--gray-dark);margin-top:2px">avg / week</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1459,6 +1486,7 @@
       }
     });
     const spend     = parseFloat(rows.find(r=>r['Metric']==='Weekly Ad Spend')?.Value)||0;
+    const adsMtd    = parseFloat(rows.find(r=>r['Metric']==='Ads Spend This Month')?.Value)||0;
     const cpl       = parseFloat(rows.find(r=>r['Metric']==='Cost per Lead')?.Value)||0;
     const leads     = parseFloat(rows.find(r=>r['Metric']==='Leads This Month')?.Value)||0;
     const contracts = parseFloat(rows.find(r=>r['Metric']==='Contracts Closed')?.Value)||0;
@@ -1472,6 +1500,26 @@
     if (adsCards[0]) { const e=adsCards[0].querySelector('.editable'); if(e) e.innerText=String(spend||0); }
     if (adsCards[1]) { const e=adsCards[1].querySelector('.editable'); if(e) e.innerText=String(cpl||0); }
     if (adsCards[2]) { const e=adsCards[2].querySelector('.editable'); if(e) e.innerText=(cpl>0?Math.round(spend/cpl):'—'); }
+
+    // Ads month-to-date card (next to Top Lead Sources)
+    (function(){
+      const valEl = document.getElementById('ads-mtd-value');
+      const subEl = document.getElementById('ads-mtd-sub');
+      const paceEl = document.getElementById('ads-mtd-pace');
+      if (!valEl || !subEl || !paceEl) return;
+
+      const now = new Date();
+      const weeksElapsed = Math.max(1, now.getDate() / 7);
+      const estMtd = spend ? Math.round((spend * weeksElapsed) * 100) / 100 : 0;
+      const mtdValue = adsMtd || estMtd;
+      const pacing = mtdValue ? Math.round((mtdValue / weeksElapsed) * 100) / 100 : 0;
+
+      valEl.textContent = mtdValue ? mtdValue.toLocaleString(undefined, {maximumFractionDigits: 0}) : '—';
+      paceEl.textContent = pacing ? ('$' + pacing.toLocaleString(undefined, {maximumFractionDigits: 0})) : '—';
+      subEl.textContent = adsMtd
+        ? 'From Google Ads script (THIS_MONTH)'
+        : (spend ? 'Estimated from weekly budget pacing' : 'Waiting for Google Ads sync');
+    })();
 
     const rSpend = document.getElementById('roi-spend');
     const rLeads = document.getElementById('roi-leads');
