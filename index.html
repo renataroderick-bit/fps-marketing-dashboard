@@ -240,6 +240,19 @@
     grid-template-columns: repeat(5, 1fr);
     gap: 10px;
   }
+  .pipeline-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .pipeline-panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+  }
   .pipeline-stage-card {
     background: white;
     border-radius: var(--radius);
@@ -766,35 +779,70 @@
         <div class="section-header">
           <div>
             <div class="section-title">Lead Pipeline</div>
-            <div class="section-sub">Live from the FPS lead tracker</div>
+            <div class="section-sub">Total pipeline plus current-month pipeline</div>
           </div>
           <span class="badge badge-green" id="open-followups-badge">0 open follow-ups</span>
         </div>
-        <div class="pipeline-stage-grid" id="pipeline-stages">
-          <div class="pipeline-stage-card new-stage">
-            <div class="stage-label">New</div>
-            <div class="stage-value">0</div>
-            <div class="stage-sub">Needs first touch</div>
+        <div class="pipeline-stack">
+          <div>
+            <div class="pipeline-panel-title">Total Pipeline</div>
+            <div class="pipeline-stage-grid" id="pipeline-stages-total">
+              <div class="pipeline-stage-card new-stage">
+                <div class="stage-label">New</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Needs first touch</div>
+              </div>
+              <div class="pipeline-stage-card contacted-stage">
+                <div class="stage-label">Contacted</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">In follow-up</div>
+              </div>
+              <div class="pipeline-stage-card walkthrough-stage">
+                <div class="stage-label">Walkthrough</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Qualified visits</div>
+              </div>
+              <div class="pipeline-stage-card closed-stage">
+                <div class="stage-label">Closed</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Won deals</div>
+              </div>
+              <div class="pipeline-stage-card lost-stage">
+                <div class="stage-label">Lost</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Dropped or lost</div>
+              </div>
+            </div>
           </div>
-          <div class="pipeline-stage-card contacted-stage">
-            <div class="stage-label">Contacted</div>
-            <div class="stage-value">0</div>
-            <div class="stage-sub">In follow-up</div>
-          </div>
-          <div class="pipeline-stage-card walkthrough-stage">
-            <div class="stage-label">Walkthrough</div>
-            <div class="stage-value">0</div>
-            <div class="stage-sub">Qualified visits</div>
-          </div>
-          <div class="pipeline-stage-card closed-stage">
-            <div class="stage-label">Closed</div>
-            <div class="stage-value">0</div>
-            <div class="stage-sub">Won deals</div>
-          </div>
-          <div class="pipeline-stage-card lost-stage">
-            <div class="stage-label">Lost</div>
-            <div class="stage-value">0</div>
-            <div class="stage-sub">Dropped or lost</div>
+          <div>
+            <div class="pipeline-panel-title">This Month</div>
+            <div class="pipeline-stage-grid" id="pipeline-stages-month">
+              <div class="pipeline-stage-card new-stage">
+                <div class="stage-label">New</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Created this month</div>
+              </div>
+              <div class="pipeline-stage-card contacted-stage">
+                <div class="stage-label">Contacted</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Worked this month</div>
+              </div>
+              <div class="pipeline-stage-card walkthrough-stage">
+                <div class="stage-label">Walkthrough</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Visits this month</div>
+              </div>
+              <div class="pipeline-stage-card closed-stage">
+                <div class="stage-label">Closed</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Wins this month</div>
+              </div>
+              <div class="pipeline-stage-card lost-stage">
+                <div class="stage-label">Lost</div>
+                <div class="stage-value">0</div>
+                <div class="stage-sub">Lost this month</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1428,7 +1476,8 @@
       loadTabFromGviz('Opportunities');
     }
     if (data.LeadSummary) _applyLeadSummary(_parseRows(data.LeadSummary));
-    if (data.LeadPipeline) _applyLeadPipeline(_parseRows(data.LeadPipeline));
+    if (data.LeadPipeline) _applyLeadPipeline(_parseRows(data.LeadPipeline), 'pipeline-stages-total');
+    if (data.LeadPipelineMonth) _applyLeadPipeline(_parseRows(data.LeadPipelineMonth), 'pipeline-stages-month', true);
     if (data.LeadSources) _applyLeadSources(_parseRows(data.LeadSources));
     const ind = document.getElementById('sheets-indicator');
     if (ind) { ind.textContent = '🟢 Live — Google Sheets ✎'; ind.style.color = '#4ade80'; }
@@ -1531,16 +1580,16 @@
     }
   }
 
-  function _applyLeadPipeline(rows) {
-    const container = document.getElementById('pipeline-stages');
+  function _applyLeadPipeline(rows, containerId, isMonthView) {
+    const container = document.getElementById(containerId);
     if (!container) return;
 
     const stageMeta = [
-      { key: 'New', cls: 'new-stage', sub: 'Needs first touch' },
-      { key: 'Contacted', cls: 'contacted-stage', sub: 'In follow-up' },
-      { key: 'Walkthrough', cls: 'walkthrough-stage', sub: 'Qualified visits' },
-      { key: 'Closed', cls: 'closed-stage', sub: 'Won deals' },
-      { key: 'Lost', cls: 'lost-stage', sub: 'Dropped or lost' }
+      { key: 'New', cls: 'new-stage', sub: isMonthView ? 'Created this month' : 'Needs first touch' },
+      { key: 'Contacted', cls: 'contacted-stage', sub: isMonthView ? 'Worked this month' : 'In follow-up' },
+      { key: 'Walkthrough', cls: 'walkthrough-stage', sub: isMonthView ? 'Visits this month' : 'Qualified visits' },
+      { key: 'Closed', cls: 'closed-stage', sub: isMonthView ? 'Wins this month' : 'Won deals' },
+      { key: 'Lost', cls: 'lost-stage', sub: isMonthView ? 'Lost this month' : 'Dropped or lost' }
     ];
     const map = {};
     rows.forEach(r => { map[r['Stage']] = r['Count']; });
