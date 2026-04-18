@@ -136,7 +136,8 @@
   }
 
   /* ── MAIN ── */
-  .main { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+  /* Wider canvas so overview doesn't feel cramped on desktop. */
+  .main { padding: 28px 32px; max-width: 1440px; margin: 0 auto; }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
@@ -1514,8 +1515,8 @@
       const mtdValue = adsMtd || estMtd;
       const pacing = mtdValue ? Math.round((mtdValue / weeksElapsed) * 100) / 100 : 0;
 
-      valEl.textContent = mtdValue ? mtdValue.toLocaleString(undefined, {maximumFractionDigits: 0}) : '—';
-      paceEl.textContent = pacing ? ('$' + pacing.toLocaleString(undefined, {maximumFractionDigits: 0})) : '—';
+      valEl.textContent = mtdValue.toLocaleString(undefined, {maximumFractionDigits: 0});
+      paceEl.textContent = '$' + pacing.toLocaleString(undefined, {maximumFractionDigits: 0});
       subEl.textContent = adsMtd
         ? 'From Google Ads script (THIS_MONTH)'
         : (spend ? 'Estimated from weekly budget pacing' : 'Waiting for Google Ads sync');
