@@ -229,6 +229,83 @@
   .trend-down { background: #fee2e2; color: var(--red-dark); }
   .trend-neutral { background: #fef3c7; color: var(--orange-dark); }
 
+  .pipeline-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .pipeline-stage-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .pipeline-stage-card {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 16px;
+    border-top: 4px solid var(--blue-light);
+  }
+  .pipeline-stage-card .stage-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--gray-dark);
+    font-weight: 700;
+  }
+  .pipeline-stage-card .stage-value {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -1px;
+    margin-top: 8px;
+    color: var(--text);
+  }
+  .pipeline-stage-card .stage-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--gray-dark);
+  }
+  .pipeline-stage-card.new-stage { border-top-color: #2563eb; }
+  .pipeline-stage-card.contacted-stage { border-top-color: #f59e0b; }
+  .pipeline-stage-card.walkthrough-stage { border-top-color: #0ea5e9; }
+  .pipeline-stage-card.closed-stage { border-top-color: #16a34a; }
+  .pipeline-stage-card.lost-stage { border-top-color: #dc2626; }
+  .source-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .source-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .source-name {
+    font-size: 13px;
+    color: var(--text-soft);
+    font-weight: 600;
+  }
+  .source-count {
+    font-size: 13px;
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .source-mini-bar {
+    grid-column: 1 / span 2;
+    height: 8px;
+    border-radius: 999px;
+    background: #e8ecf2;
+    overflow: hidden;
+  }
+  .source-mini-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #1e4d8c 0%, #22c55e 100%);
+  }
+
   /* ── SECTION HEADERS ── */
   .section { margin-bottom: 24px; }
   .section-header {
@@ -681,6 +758,64 @@
         <div class="kpi-value"><span class="editable" contenteditable="true">2</span></div>
         <div class="kpi-sub">this month</div>
         <div class="kpi-trend trend-neutral">→ Track weekly</div>
+      </div>
+    </div>
+
+    <div class="pipeline-grid">
+      <div class="section">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Lead Pipeline</div>
+            <div class="section-sub">Live from the FPS lead tracker</div>
+          </div>
+          <span class="badge badge-green" id="open-followups-badge">0 open follow-ups</span>
+        </div>
+        <div class="pipeline-stage-grid" id="pipeline-stages">
+          <div class="pipeline-stage-card new-stage">
+            <div class="stage-label">New</div>
+            <div class="stage-value">0</div>
+            <div class="stage-sub">Needs first touch</div>
+          </div>
+          <div class="pipeline-stage-card contacted-stage">
+            <div class="stage-label">Contacted</div>
+            <div class="stage-value">0</div>
+            <div class="stage-sub">In follow-up</div>
+          </div>
+          <div class="pipeline-stage-card walkthrough-stage">
+            <div class="stage-label">Walkthrough</div>
+            <div class="stage-value">0</div>
+            <div class="stage-sub">Qualified visits</div>
+          </div>
+          <div class="pipeline-stage-card closed-stage">
+            <div class="stage-label">Closed</div>
+            <div class="stage-value">0</div>
+            <div class="stage-sub">Won deals</div>
+          </div>
+          <div class="pipeline-stage-card lost-stage">
+            <div class="stage-label">Lost</div>
+            <div class="stage-value">0</div>
+            <div class="stage-sub">Dropped or lost</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Top Lead Sources</div>
+            <div class="section-sub">Current-month lead volume</div>
+          </div>
+          <span class="badge badge-blue" id="top-source-badge">No source yet</span>
+        </div>
+        <div class="card" style="padding:18px 20px">
+          <div class="source-list" id="lead-sources-container">
+            <div class="source-item">
+              <div class="source-name">Waiting for live lead data…</div>
+              <div class="source-count">0</div>
+              <div class="source-mini-bar"><div class="source-mini-fill" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1292,6 +1427,9 @@
     } else {
       loadTabFromGviz('Opportunities');
     }
+    if (data.LeadSummary) _applyLeadSummary(_parseRows(data.LeadSummary));
+    if (data.LeadPipeline) _applyLeadPipeline(_parseRows(data.LeadPipeline));
+    if (data.LeadSources) _applyLeadSources(_parseRows(data.LeadSources));
     const ind = document.getElementById('sheets-indicator');
     if (ind) { ind.textContent = '🟢 Live — Google Sheets ✎'; ind.style.color = '#4ade80'; }
   };
@@ -1375,6 +1513,67 @@
     }
     calcROI();
     recalcCosts();
+  }
+
+  function _applyLeadSummary(rows) {
+    const map = {};
+    rows.forEach(r => { map[r['Metric']] = r['Value']; });
+
+    const openBadge = document.getElementById('open-followups-badge');
+    if (openBadge) {
+      const open = map['Open Follow Ups'] || 0;
+      openBadge.textContent = `${open} open follow-ups`;
+    }
+
+    const topBadge = document.getElementById('top-source-badge');
+    if (topBadge) {
+      topBadge.textContent = map['Top Lead Source'] || 'No source yet';
+    }
+  }
+
+  function _applyLeadPipeline(rows) {
+    const container = document.getElementById('pipeline-stages');
+    if (!container) return;
+
+    const stageMeta = [
+      { key: 'New', cls: 'new-stage', sub: 'Needs first touch' },
+      { key: 'Contacted', cls: 'contacted-stage', sub: 'In follow-up' },
+      { key: 'Walkthrough', cls: 'walkthrough-stage', sub: 'Qualified visits' },
+      { key: 'Closed', cls: 'closed-stage', sub: 'Won deals' },
+      { key: 'Lost', cls: 'lost-stage', sub: 'Dropped or lost' }
+    ];
+    const map = {};
+    rows.forEach(r => { map[r['Stage']] = r['Count']; });
+
+    container.innerHTML = stageMeta.map(stage => `
+      <div class="pipeline-stage-card ${stage.cls}">
+        <div class="stage-label">${stage.key}</div>
+        <div class="stage-value">${map[stage.key] || 0}</div>
+        <div class="stage-sub">${stage.sub}</div>
+      </div>
+    `).join('');
+  }
+
+  function _applyLeadSources(rows) {
+    const container = document.getElementById('lead-sources-container');
+    if (!container) return;
+    if (!rows.length) {
+      container.innerHTML = `<div class="source-item"><div class="source-name">No lead sources yet</div><div class="source-count">0</div><div class="source-mini-bar"><div class="source-mini-fill" style="width:0%"></div></div></div>`;
+      return;
+    }
+
+    const max = Math.max(...rows.map(r => Number(r['Count']) || 0), 1);
+    container.innerHTML = rows.slice(0, 5).map(r => {
+      const count = Number(r['Count']) || 0;
+      const width = Math.max(8, Math.round((count / max) * 100));
+      return `
+        <div class="source-item">
+          <div class="source-name">${r['Source'] || 'Unknown'}</div>
+          <div class="source-count">${count}</div>
+          <div class="source-mini-bar"><div class="source-mini-fill" style="width:${width}%"></div></div>
+        </div>
+      `;
+    }).join('');
   }
 
   // ── Campaigns ─────────────────────────────────────────────────
