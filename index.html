@@ -1596,13 +1596,13 @@
     const note = document.getElementById('lead-bars-note');
     if (!container) return;
 
-    if (!rows.length) {
+    if (!rows || !rows.length) {
       container.innerHTML = `
         <div class="leads-bar-item" style="margin-bottom:0">
-          <div class="leads-bar-label"><span>No ad group data yet</span><span>0%</span></div>
+          <div class="leads-bar-label"><span>No ad group data yet</span><span>0</span></div>
           <div class="bar-bg"><div class="bar-fill" style="width:0%"></div></div>
         </div>`;
-      if (badge) badge.textContent = 'Waiting';
+      if (badge) badge.textContent = `0 leads / month`;
       if (note) note.textContent = 'Run the Google Ads sync to populate AdGroups';
       return;
     }
@@ -1612,6 +1612,17 @@
       .filter(r => (Number(r['Leads/Month']) || 0) > 0)
       .sort((a, b) => (Number(b['Leads/Month']) || 0) - (Number(a['Leads/Month']) || 0))
       .slice(0, 6);
+
+    if (!sorted.length) {
+      container.innerHTML = `
+        <div class="leads-bar-item" style="margin-bottom:0">
+          <div class="leads-bar-label"><span>No leads yet this month</span><span>0</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:0%"></div></div>
+        </div>`;
+      if (badge) badge.textContent = `0 leads / month`;
+      if (note) note.textContent = 'Waiting for this month conversions';
+      return;
+    }
 
     container.innerHTML = sorted.map((r, i) => {
       const leads = Number(r['Leads/Month']) || 0;
@@ -1913,14 +1924,21 @@
     };
   }
 
-  // ── Ad Groups ─────────────────────────────────────────────────
-  function _applyAdGroups(rows) {
-    _sheetPos.AdGroups = rows.map(r => r._row);
-    const tbody = document.querySelector('.ad-groups-table tbody');
-    if (!tbody || !rows.length) return;
-    _renderOverviewAdGroupBars(rows);
-    _syncGoogleAdsCardsFromAdGroups(rows);
-    const barColors = ['','','orange','','green','',''];
+	  // ── Ad Groups ─────────────────────────────────────────────────
+	  function _applyAdGroups(rows) {
+	    _sheetPos.AdGroups = rows.map(r => r._row);
+	    // Always update the Overview + top-level Google Ads cards even if the Google Ads tab
+	    // table isn't currently mounted in the DOM (prevents "Loading..." hanging forever).
+	    _renderOverviewAdGroupBars(rows);
+	    _syncGoogleAdsCardsFromAdGroups(rows);
+
+	    const tbody = document.querySelector('.ad-groups-table tbody');
+	    if (!tbody) return;
+	    if (!rows.length) {
+	      tbody.innerHTML = `<tr><td colspan="6" style="padding:18px 14px;color:var(--gray-dark)">No ad group data yet. Run the Google Ads sync to populate AdGroups.</td></tr>`;
+	      return;
+	    }
+	    const barColors = ['','','orange','','green','',''];
     let html = '';
     rows.forEach((r, i) => {
       const active = (r['Status']||'Active').toLowerCase() !== 'paused';
