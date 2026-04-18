@@ -955,34 +955,16 @@
       <div class="section">
         <div class="section-header">
           <div class="section-title">Leads by Ad Group</div>
-          <span class="badge badge-blue">Estimated</span>
+          <span class="badge badge-blue" id="lead-bars-badge">Live</span>
         </div>
         <div class="card" style="padding: 18px 20px;">
-          <div class="leads-bar-item">
-            <div class="leads-bar-label"><span>Office Cleaning</span><span>32%</span></div>
-            <div class="bar-bg"><div class="bar-fill" style="width:32%"></div></div>
+          <div id="overview-adgroup-leads">
+            <div class="leads-bar-item">
+              <div class="leads-bar-label"><span>Loading ad group data...</span><span>—</span></div>
+              <div class="bar-bg"><div class="bar-fill" style="width:0%"></div></div>
+            </div>
           </div>
-          <div class="leads-bar-item">
-            <div class="leads-bar-label"><span>Janitorial Services</span><span>24%</span></div>
-            <div class="bar-bg"><div class="bar-fill" style="width:24%"></div></div>
-          </div>
-          <div class="leads-bar-item">
-            <div class="leads-bar-label"><span>Restaurant Cleaning</span><span>18%</span></div>
-            <div class="bar-bg"><div class="bar-fill green" style="width:18%"></div></div>
-          </div>
-          <div class="leads-bar-item">
-            <div class="leads-bar-label"><span>Disinfecting &amp; Deep Clean</span><span>12%</span></div>
-            <div class="bar-bg"><div class="bar-fill" style="width:12%"></div></div>
-          </div>
-          <div class="leads-bar-item">
-            <div class="leads-bar-label"><span>Floor Cleaning</span><span>10%</span></div>
-            <div class="bar-bg"><div class="bar-fill orange" style="width:10%"></div></div>
-          </div>
-          <div class="leads-bar-item" style="margin-bottom:0">
-            <div class="leads-bar-label"><span>Medical / Hospital</span><span>4%</span></div>
-            <div class="bar-bg"><div class="bar-fill" style="width:4%"></div></div>
-          </div>
-          <div class="leads-note">⚠️ Update with real Google Ads data when available</div>
+          <div class="leads-note" id="lead-bars-note">Live from the AdGroups sheet</div>
         </div>
       </div>
     </div>
@@ -995,18 +977,18 @@
     <div class="kpi-grid" style="grid-template-columns: repeat(3,1fr)">
       <div class="kpi-card">
         <div class="kpi-label">Total Weekly Budget</div>
-        <div class="kpi-value">$<span contenteditable="true" class="editable">500</span></div>
-        <div class="kpi-sub">across 6 active groups</div>
+        <div class="kpi-value">$<span contenteditable="true" class="editable" id="google-kpi-spend">500</span></div>
+        <div class="kpi-sub" id="google-kpi-spend-sub">across 6 active groups</div>
       </div>
       <div class="kpi-card green">
         <div class="kpi-label">Avg. Cost Per Lead</div>
-        <div class="kpi-value">$<span contenteditable="true" class="editable">103</span></div>
-        <div class="kpi-sub">target: under $120</div>
+        <div class="kpi-value">$<span contenteditable="true" class="editable" id="google-kpi-cpl">103</span></div>
+        <div class="kpi-sub" id="google-kpi-cpl-sub">target: under $120</div>
       </div>
       <div class="kpi-card orange">
         <div class="kpi-label">Leads / Week (est.)</div>
-        <div class="kpi-value">~<span contenteditable="true" class="editable">5</span></div>
-        <div class="kpi-sub">based on budget ÷ CPL</div>
+        <div class="kpi-value">~<span contenteditable="true" class="editable" id="google-kpi-leads">5</span></div>
+        <div class="kpi-sub" id="google-kpi-leads-sub">based on last 30 days ad group performance</div>
       </div>
     </div>
 
@@ -1016,7 +998,7 @@
           <div class="section-title">Ad Group Performance</div>
           <div class="section-sub">Green = high priority · Orange = watch · Gray = paused</div>
         </div>
-        <span class="badge badge-blue">6 Active · 1 Paused</span>
+        <span class="badge badge-blue" id="adgroups-summary-badge">6 Active · 1 Paused</span>
       </div>
       <div class="card">
         <table class="ad-groups-table">
@@ -1625,6 +1607,89 @@
     }).join('');
   }
 
+  function _priorityMeta(leads, cpl, status) {
+    if ((status || '').toLowerCase() === 'paused') {
+      return { label: 'Paused', cls: '', style: 'background:#f0f0f0;color:#999' };
+    }
+    if (leads >= 5 && cpl > 0 && cpl <= 100) {
+      return { label: 'Strong', cls: 'badge-green', style: '' };
+    }
+    if (leads >= 3 && cpl > 0 && cpl <= 120) {
+      return { label: 'High', cls: 'badge-blue', style: '' };
+    }
+    if (cpl > 120 || leads <= 1) {
+      return { label: 'Watch', cls: 'badge-orange', style: '' };
+    }
+    return { label: 'Medium', cls: 'badge-blue', style: '' };
+  }
+
+  function _renderOverviewAdGroupBars(rows) {
+    const container = document.getElementById('overview-adgroup-leads');
+    const badge = document.getElementById('lead-bars-badge');
+    const note = document.getElementById('lead-bars-note');
+    if (!container) return;
+
+    if (!rows.length) {
+      container.innerHTML = `
+        <div class="leads-bar-item" style="margin-bottom:0">
+          <div class="leads-bar-label"><span>No ad group data yet</span><span>0%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:0%"></div></div>
+        </div>`;
+      if (badge) badge.textContent = 'Waiting';
+      if (note) note.textContent = 'Run the Google Ads sync to populate AdGroups';
+      return;
+    }
+
+    const totalLeads = rows.reduce((sum, r) => sum + (Number(r['Leads/Month']) || 0), 0);
+    const sorted = rows
+      .filter(r => (Number(r['Leads/Month']) || 0) > 0)
+      .sort((a, b) => (Number(b['Leads/Month']) || 0) - (Number(a['Leads/Month']) || 0))
+      .slice(0, 6);
+
+    container.innerHTML = sorted.map((r, i) => {
+      const leads = Number(r['Leads/Month']) || 0;
+      const pct = totalLeads > 0 ? Math.round((leads / totalLeads) * 100) : 0;
+      const colorClass = i === 1 ? 'green' : (i === 3 ? 'orange' : '');
+      return `
+        <div class="leads-bar-item" style="${i === sorted.length - 1 ? 'margin-bottom:0' : ''}">
+          <div class="leads-bar-label"><span>${r['Group'] || 'Unnamed group'}</span><span>${pct}%</span></div>
+          <div class="bar-bg"><div class="bar-fill ${colorClass}" style="width:${pct}%"></div></div>
+        </div>`;
+    }).join('');
+
+    if (badge) badge.textContent = `${totalLeads} leads / 30 days`;
+    if (note) note.textContent = 'Live from Lead Campaign ad groups';
+  }
+
+  function _syncGoogleAdsCardsFromAdGroups(rows) {
+    const activeGroups = rows.filter(r => (r['Status'] || 'Active').toLowerCase() !== 'paused');
+    const activeCount = activeGroups.length;
+    const pausedCount = rows.length - activeCount;
+    const monthlyLeads = rows.reduce((sum, r) => sum + (Number(r['Leads/Month']) || 0), 0);
+    const weightedCost = rows.reduce((sum, r) => {
+      const leads = Number(r['Leads/Month']) || 0;
+      const cpl = Number(r['Cost per Lead']) || 0;
+      return sum + (leads * cpl);
+    }, 0);
+    const avgCpl = monthlyLeads > 0 ? Math.round((weightedCost / monthlyLeads) * 100) / 100 : 0;
+    const estWeeklyLeads = monthlyLeads > 0 ? Math.round((monthlyLeads / 4.33) * 10) / 10 : 0;
+
+    const badge = document.getElementById('adgroups-summary-badge');
+    if (badge) badge.textContent = `${activeCount} Active · ${pausedCount} Paused`;
+
+    const spendSub = document.getElementById('google-kpi-spend-sub');
+    const cplEl = document.getElementById('google-kpi-cpl');
+    const cplSub = document.getElementById('google-kpi-cpl-sub');
+    const leadsEl = document.getElementById('google-kpi-leads');
+    const leadsSub = document.getElementById('google-kpi-leads-sub');
+
+    if (spendSub) spendSub.textContent = `across ${activeCount} active groups`;
+    if (cplEl && avgCpl) cplEl.innerText = avgCpl;
+    if (cplSub) cplSub.textContent = avgCpl ? 'weighted by ad group leads' : 'waiting for live ad group data';
+    if (leadsEl) leadsEl.innerText = estWeeklyLeads || 0;
+    if (leadsSub) leadsSub.textContent = 'based on last 30 days ad group performance';
+  }
+
   // ── Campaigns ─────────────────────────────────────────────────
   const STATUS_MAP = {
     'Active':      {bg:'#dcfce7',c:'#16a34a'},
@@ -1896,6 +1961,8 @@
     _sheetPos.AdGroups = rows.map(r => r._row);
     const tbody = document.querySelector('.ad-groups-table tbody');
     if (!tbody || !rows.length) return;
+    _renderOverviewAdGroupBars(rows);
+    _syncGoogleAdsCardsFromAdGroups(rows);
     const barColors = ['','','orange','','green','',''];
     let html = '';
     rows.forEach((r, i) => {
@@ -1904,6 +1971,7 @@
       const leads  = r['Leads/Month']||'0';
       const cpl    = r['Cost per Lead']||'';
       const bc     = barColors[i]||'';
+      const priority = _priorityMeta(Number(leads)||0, Number(cpl)||0, r['Status']||'Active');
       html += `<tr ${!active?'style="opacity:0.45"':''}>
         <td><span class="group-name txt-edit" contenteditable="true" data-tab="AdGroups" data-row="${r._row}" data-col="1">${r['Group']||''}</span></td>
         <td>
@@ -1918,7 +1986,7 @@
         </td>
         <td><input class="editable" value="${leads}" type="number" min="0" onchange="writeToSheet('AdGroups',${r._row},3,this.value);saveAll()"></td>
         <td>$<input class="editable" value="${cpl}" type="number" min="0" onchange="writeToSheet('AdGroups',${r._row},4,this.value);saveAll()"></td>
-        <td>—</td>
+        <td><span class="badge ${priority.cls}" ${priority.style ? `style="${priority.style}"` : ''}>${priority.label}</span></td>
       </tr>`;
     });
     tbody.innerHTML = html;
