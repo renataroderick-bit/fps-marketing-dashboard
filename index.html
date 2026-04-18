@@ -1354,6 +1354,10 @@
     const ind = document.getElementById('sheets-indicator');
     if (ind) { ind.textContent = '⏳ Syncing...'; ind.style.color = 'rgba(255,255,255,0.7)'; }
 
+    // Load core data directly from the Sheet immediately (fast + reliable).
+    // Apps Script is only used as an additive feed for Lead Tracker metrics.
+    TABS.forEach(tab => loadTabFromGviz(tab));
+
     if (APPS_SCRIPT_URL) {
       const old = document.getElementById('jsonp-main');
       if (old) old.remove();
@@ -1387,9 +1391,6 @@
 
     if (data.LeadSummary) _applyLeadSummary(_parseRows(data.LeadSummary));
     if (data.LeadSources) _applyLeadSources(_parseRows(data.LeadSources));
-
-    // Always hydrate the core tabs from the Google Sheet.
-    TABS.forEach(tab => loadTabFromGviz(tab));
 
     const ind = document.getElementById('sheets-indicator');
     if (ind) { ind.textContent = '🟢 Live — Google Sheets ✎'; ind.style.color = '#4ade80'; }
@@ -1573,7 +1574,7 @@
         </div>`;
     }).join('');
 
-    if (badge) badge.textContent = `${totalLeads} leads / 30 days`;
+    if (badge) badge.textContent = `${totalLeads} leads / month`;
     if (note) note.textContent = 'Live from Lead Campaign ad groups';
   }
 
@@ -1593,7 +1594,7 @@
 
     if (spendSub) spendSub.textContent = `across ${activeCount} active groups`;
     if (leadsEl) leadsEl.innerText = estWeeklyLeads || 0;
-    if (leadsSub) leadsSub.textContent = 'based on last 30 days ad group performance';
+    if (leadsSub) leadsSub.textContent = 'based on this month ad group performance';
   }
 
   // ── Campaigns ─────────────────────────────────────────────────
