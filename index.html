@@ -1374,19 +1374,23 @@
       fallbackToGviz(data.error);
       return;
     }
-    if (data.KPIs)      _applyKPIs(_parseRows(data.KPIs));
-    if (data.Campaigns) _applyCampaigns(_parseRows(data.Campaigns));
-    if (data.Channels)  _applyChannels(_parseRows(data.Channels));
-    if (data.Insights)  _applyInsights(_parseRows(data.Insights));
-    if (data.AdGroups)  _applyAdGroups(_parseRows(data.AdGroups));
-    if (data.Opportunities) {
-      _applyOpportunities(_parseRows(data.Opportunities));
-      _loaded.Opportunities = 'ok';
-    } else {
-      loadTabFromGviz('Opportunities');
+
+    // We intentionally source KPIs/Channels/AdGroups from the Sheet (GViz) so Ads automation stays the
+    // single source of truth. The Apps Script feed is used only for lead tracker metrics.
+    if (data.KPIs) {
+      const rows = _parseRows(data.KPIs);
+      window.__kpiOverrides = {
+        leadsThisMonth: rows.find(r => r['Metric'] === 'Leads This Month')?.Value,
+        contractsClosed: rows.find(r => r['Metric'] === 'Contracts Closed')?.Value,
+      };
     }
+
     if (data.LeadSummary) _applyLeadSummary(_parseRows(data.LeadSummary));
     if (data.LeadSources) _applyLeadSources(_parseRows(data.LeadSources));
+
+    // Always hydrate the core tabs from the Google Sheet.
+    TABS.forEach(tab => loadTabFromGviz(tab));
+
     const ind = document.getElementById('sheets-indicator');
     if (ind) { ind.textContent = '🟢 Live — Google Sheets ✎'; ind.style.color = '#4ade80'; }
   };
@@ -1415,7 +1419,23 @@
       });
     } catch(e){return[];}
   }
-  window.handle_gviz_KPIs      = r=>{ _applyKPIs(_gvizToRows(r));      _loaded.KPIs='ok';      _checkDone(); };
+  function _applyKpiOverrides_() {
+    const o = window.__kpiOverrides;
+    if (!o) return;
+    const cards = document.querySelectorAll('#tab-overview .kpi-card');
+    const idxLeads = KPI_LABELS.indexOf('Leads This Month');
+    const idxClosed = KPI_LABELS.indexOf('Contracts Closed');
+    if (cards[idxLeads]) {
+      const el = cards[idxLeads].querySelector('.editable[contenteditable]');
+      if (el && o.leadsThisMonth != null) el.innerText = String(o.leadsThisMonth);
+    }
+    if (cards[idxClosed]) {
+      const el = cards[idxClosed].querySelector('.editable[contenteditable]');
+      if (el && o.contractsClosed != null) el.innerText = String(o.contractsClosed);
+    }
+  }
+
+  window.handle_gviz_KPIs      = r=>{ _applyKPIs(_gvizToRows(r)); _applyKpiOverrides_(); _loaded.KPIs='ok'; _checkDone(); };
   window.handle_gviz_Campaigns = r=>{ _applyCampaigns(_gvizToRows(r)); _loaded.Campaigns='ok'; _checkDone(); };
   window.handle_gviz_Channels  = r=>{ _applyChannels(_gvizToRows(r));  _loaded.Channels='ok';  _checkDone(); };
   window.handle_gviz_Insights  = r=>{ _applyInsights(_gvizToRows(r));  _loaded.Insights='ok';  _checkDone(); };
@@ -1448,8 +1468,8 @@
 
     // Sync Google Ads summary KPI cards from Sheets data
     const adsCards = document.querySelectorAll('#tab-google .kpi-card');
-    if (adsCards[0]) { const e=adsCards[0].querySelector('.editable'); if(e) e.innerText=spend||'—'; }
-    if (adsCards[1]) { const e=adsCards[1].querySelector('.editable'); if(e) e.innerText=cpl||'—'; }
+    if (adsCards[0]) { const e=adsCards[0].querySelector('.editable'); if(e) e.innerText=String(spend||0); }
+    if (adsCards[1]) { const e=adsCards[1].querySelector('.editable'); if(e) e.innerText=String(cpl||0); }
     if (adsCards[2]) { const e=adsCards[2].querySelector('.editable'); if(e) e.innerText=(cpl>0?Math.round(spend/cpl):'—'); }
 
     const rSpend = document.getElementById('roi-spend');
