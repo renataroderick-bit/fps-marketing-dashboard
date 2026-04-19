@@ -725,6 +725,9 @@
       <div class="last-update" id="updateTime">Updated: —</div>
       <div id="sheets-indicator" onclick="loadFromSheets()">⚪ Google Sheets not connected</div>
     </div>
+    <button class="edit-btn" id="auto-btn" onclick="toggleAutoInsights()" title="Auto-generate Insights + Opportunities (free, no tokens)">
+      🤖 Auto: Off
+    </button>
     <button class="edit-btn" id="edit-btn" onclick="toggleEditMode()" title="Enable editing">
       ✏️ Edit
     </button>
@@ -1321,6 +1324,38 @@
     }
   }
 
+  function _autoModeEnabled_() {
+    try { return localStorage.getItem('fps_auto_mode') === 'on'; } catch (e) { return false; }
+  }
+
+  function _syncAutoBtn_() {
+    const btn = document.getElementById('auto-btn');
+    if (!btn) return;
+    const on = _autoModeEnabled_();
+    btn.textContent = on ? '🤖 Auto: On' : '🤖 Auto: Off';
+    btn.classList.toggle('active', on);
+    btn.title = on
+      ? 'Auto mode is ON: the dashboard will refresh Insights + Opportunities daily (free) and write them to Sheets.'
+      : 'Auto mode is OFF: Insights + Opportunities will stay as-is unless blank.';
+  }
+
+  function toggleAutoInsights() {
+    const next = !_autoModeEnabled_();
+    try { localStorage.setItem('fps_auto_mode', next ? 'on' : 'off'); } catch (e) {}
+    _syncAutoBtn_();
+
+    // If turning ON, force a refresh right now.
+    if (next) {
+      try { localStorage.removeItem('fps_auto_insights_last'); } catch (e) {}
+      try { localStorage.removeItem('fps_auto_opps_last'); } catch (e) {}
+
+      if (window.__fpsLastInsightsRows) _maybeAutoFillInsights(window.__fpsLastInsightsRows);
+      const titleEl = document.getElementById('opportunity-title');
+      const textEl = document.getElementById('opportunity-text');
+      if (titleEl && textEl) _maybeAutoFillOpportunities(titleEl, textEl);
+    }
+  }
+
   // ── GOOGLE SHEETS INTEGRATION ─────────────────────────────────
   const SHEET_ID = '1t4lS0Ca0m4h4fYO_zEX0IjHUyiRTezxnmtDKhjwITYg';
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyUnyaT5oUeINkSbWbEk0etfg9XRj29KMKXV9430X0zLbJiy5PQMC4utYFByimgeKml/exec';
@@ -1328,6 +1363,13 @@
   const TABS = ['KPIs','Campaigns','Channels','Insights','AdGroups','Opportunities'];
   let _loaded = {};
   let _sheetPos = {};
+  // "No-token AI": rule-based insight generation (free).
+  // It only auto-fills when the sheet is empty or when you set the first insight Title to "AUTO".
+  window.__fpsAuto = {
+    kpis: { spendWeekly: 0, adsMtd: 0, cpl: 0, leadsThisMonth: 0, contractsClosed: 0 },
+    leadSources: [], // [{Source, Count}]
+    adGroups: []     // rows from AdGroups tab
+  };
 
   function _parseRows(raw) {
     if (!raw || raw.length < 2) return [];
@@ -1484,13 +1526,15 @@
         valEl.onblur = () => { saveAll(); writeToSheet('KPIs', r._row, 2, valEl.innerText.trim()); };
       }
     });
-    const spend     = parseFloat(rows.find(r=>r['Metric']==='Weekly Ad Spend')?.Value)||0;
-    const adsMtd    = parseFloat(rows.find(r=>r['Metric']==='Ads Spend This Month')?.Value)||0;
-    const cpl       = parseFloat(rows.find(r=>r['Metric']==='Cost per Lead')?.Value)||0;
-    const leads     = parseFloat(rows.find(r=>r['Metric']==='Leads This Month')?.Value)||0;
-    const contracts = parseFloat(rows.find(r=>r['Metric']==='Contracts Closed')?.Value)||0;
+	    const spend     = parseFloat(rows.find(r=>r['Metric']==='Weekly Ad Spend')?.Value)||0;
+	    const adsMtd    = parseFloat(rows.find(r=>r['Metric']==='Ads Spend This Month')?.Value)||0;
+	    const cpl       = parseFloat(rows.find(r=>r['Metric']==='Cost per Lead')?.Value)||0;
+	    const leads     = parseFloat(rows.find(r=>r['Metric']==='Leads This Month')?.Value)||0;
+	    const contracts = parseFloat(rows.find(r=>r['Metric']==='Contracts Closed')?.Value)||0;
 
-    // Keep calculators in sync even when values are 0.
+	    window.__fpsAuto.kpis = { spendWeekly: spend, adsMtd: adsMtd, cpl: cpl, leadsThisMonth: leads, contractsClosed: contracts };
+
+	    // Keep calculators in sync even when values are 0.
     { const el=document.getElementById('calc-spend'); if(el) el.value = spend ? (spend * 4) : 0; }
     { const el=document.getElementById('calc-cpl');   if(el) el.value = cpl || 0; }
 
@@ -1549,13 +1593,17 @@
     }
   }
 
-  function _applyLeadSources(rows) {
-    const container = document.getElementById('lead-sources-container');
-    if (!container) return;
-    if (!rows.length) {
-      container.innerHTML = `<div class="source-item"><div class="source-name">No lead sources yet</div><div class="source-count">0</div><div class="source-mini-bar"><div class="source-mini-fill" style="width:0%"></div></div></div>`;
-      return;
-    }
+	  function _applyLeadSources(rows) {
+	    const container = document.getElementById('lead-sources-container');
+	    if (!container) return;
+	    window.__fpsAuto.leadSources = (rows || []).map(r => ({
+	      Source: r['Source'] || '',
+	      Count: Number(r['Count']) || 0
+	    }));
+	    if (!rows.length) {
+	      container.innerHTML = `<div class="source-item"><div class="source-name">No lead sources yet</div><div class="source-count">0</div><div class="source-mini-bar"><div class="source-mini-fill" style="width:0%"></div></div></div>`;
+	      return;
+	    }
 
     const max = Math.max(...rows.map(r => Number(r['Count']) || 0), 1);
     container.innerHTML = rows.slice(0, 5).map(r => {
@@ -1830,14 +1878,19 @@
   };
 
   // ── Insights ──────────────────────────────────────────────────
-  function _applyInsights(rows) {
-    _sheetPos.Insights = rows.map(r => r._row);
-    const container = document.getElementById('insights-container');
-    if (!container || !rows.length) return;
-    let html = '';
-    rows.forEach(r => {
-      const colorClass = r['Color']||'';
-      html += `<div class="insight-card ${colorClass}">
+	  function _applyInsights(rows) {
+	    _sheetPos.Insights = rows.map(r => r._row);
+	    const container = document.getElementById('insights-container');
+	    if (!container) return;
+	    window.__fpsLastInsightsRows = rows || [];
+	    if (!rows || !rows.length) {
+	      _renderAutoInsights(container);
+	      return;
+	    }
+	    let html = '';
+	    rows.forEach(r => {
+	      const colorClass = r['Color']||'';
+	      html += `<div class="insight-card ${colorClass}">
         <span class="insight-emoji txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="1">${r['Emoji']||'💡'}</span>
         <div class="insight-title txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="2">${r['Title']}</div>
         <div class="insight-text txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="3">${r['Text']||''}</div>
@@ -1850,13 +1903,15 @@
     });
     container.innerHTML = html;
 
-    container.querySelectorAll('[contenteditable="true"][data-tab="Insights"]').forEach(el => {
-      el.onblur = () => {
-        writeToSheet('Insights', parseInt(el.dataset.row), parseInt(el.dataset.col), el.innerText.trim());
-        saveAll();
-      };
-    });
-  }
+	    container.querySelectorAll('[contenteditable="true"][data-tab="Insights"]').forEach(el => {
+	      el.onblur = () => {
+	        writeToSheet('Insights', parseInt(el.dataset.row), parseInt(el.dataset.col), el.innerText.trim());
+	        saveAll();
+	      };
+	    });
+
+	    _maybeAutoFillInsights(rows);
+	  }
 
   window.setInsightColor = function(select, row) {
     select.closest('.insight-card').className = 'insight-card ' + select.value;
@@ -1883,10 +1938,10 @@
     }, 350);
   }
 
-  function _applyOpportunities(rows) {
-    const titleEl = document.getElementById('opportunity-title');
-    const textEl = document.getElementById('opportunity-text');
-    if (!titleEl || !textEl) return;
+	  function _applyOpportunities(rows) {
+	    const titleEl = document.getElementById('opportunity-title');
+	    const textEl = document.getElementById('opportunity-text');
+	    if (!titleEl || !textEl) return;
 
     const row = rows && rows.length ? rows[0] : null;
     if (row) {
@@ -1913,21 +1968,217 @@
       writeToSheet('Opportunities', _sheetPos.Opportunities, 1, titleEl.value.trim(), () => _setOpportunityStatus('Saved to sheet ✓'));
       saveAll();
     };
-    textEl.onblur = () => {
-      clearTimeout(_oppWriteTimer);
-      _setOpportunityStatus('Saving...');
-      writeToSheet('Opportunities', _sheetPos.Opportunities, 2, textEl.value.trim(), () => _setOpportunityStatus('Saved to sheet ✓'));
-      saveAll();
-    };
-  }
+	    textEl.onblur = () => {
+	      clearTimeout(_oppWriteTimer);
+	      _setOpportunityStatus('Saving...');
+	      writeToSheet('Opportunities', _sheetPos.Opportunities, 2, textEl.value.trim(), () => _setOpportunityStatus('Saved to sheet ✓'));
+	      saveAll();
+	    };
 
-	  // ── Ad Groups ─────────────────────────────────────────────────
-	  function _applyAdGroups(rows) {
-	    _sheetPos.AdGroups = rows.map(r => r._row);
-	    // Always update the Overview + top-level Google Ads cards even if the Google Ads tab
-	    // table isn't currently mounted in the DOM (prevents "Loading..." hanging forever).
-	    _renderOverviewAdGroupBars(rows);
-	    _syncGoogleAdsCardsFromAdGroups(rows);
+	    _maybeAutoFillOpportunities(titleEl, textEl);
+	  }
+
+	  // ── No-Token "AI" Insight Generation (Rules) ──────────────────
+	  function _todayKey_() {
+	    try { return new Date().toISOString().slice(0, 10); } catch (e) { return String(Date.now()); }
+	  }
+
+	  function _num_(v) {
+	    const n = Number(v);
+	    return isFinite(n) ? n : 0;
+	  }
+
+	  function _fmtMoney_(n) {
+	    const v = Math.round(_num_(n));
+	    return '$' + v.toLocaleString();
+	  }
+
+	  function _autoInsightsPayload_() {
+	    const k = window.__fpsAuto && window.__fpsAuto.kpis ? window.__fpsAuto.kpis : {};
+	    const spendWeekly = _num_(k.spendWeekly);
+	    const cpl = _num_(k.cpl);
+	    const leadsThisMonth = _num_(k.leadsThisMonth);
+
+	    const sources = (window.__fpsAuto && window.__fpsAuto.leadSources ? window.__fpsAuto.leadSources : [])
+	      .slice()
+	      .sort((a, b) => (b.Count || 0) - (a.Count || 0));
+	    const topSource = sources[0] && sources[0].Source ? sources[0].Source : '';
+
+	    const groups = (window.__fpsAuto && window.__fpsAuto.adGroups ? window.__fpsAuto.adGroups : [])
+	      .map(r => ({
+	        group: r['Group'] || '',
+	        status: (r['Status'] || 'Active'),
+	        leads: _num_(r['Leads/Month']),
+	        cpl: _num_(r['Cost per Lead']),
+	        budgetPct: _num_(String(r['Budget %'] || '').replace('%',''))
+	      }))
+	      .filter(g => g.group);
+
+	    const bestEff = groups
+	      .filter(g => g.status.toLowerCase() !== 'paused' && g.leads > 0 && g.cpl > 0)
+	      .sort((a, b) => a.cpl - b.cpl)[0];
+
+	    const estLeadsWeek = cpl > 0 ? (spendWeekly / cpl) : (leadsThisMonth > 0 ? (leadsThisMonth / 4.33) : 0);
+	    const estLeadsWeekRounded = estLeadsWeek > 0 ? Math.round(estLeadsWeek * 10) / 10 : 0;
+
+	    // 1) CPL insight
+	    const cplColor = cpl > 0 && cpl <= 120 ? 'good' : (cpl > 120 ? 'warn' : '');
+	    const cplTitle = cpl > 0 ? `${_fmtMoney_(cpl)}/lead is ${cpl <= 120 ? 'on target' : 'high'}` : 'Cost/lead is not available yet';
+	    const cplText = cpl > 0
+	      ? (cpl <= 120
+	        ? 'We are within target. Keep budget stable and keep optimizing ads + landing page to improve lead quality.'
+	        : 'We are above target. Tighten keywords, review search terms, add negatives, and align ad copy with the landing page to reduce wasted clicks.')
+	      : 'No cost/lead is showing. This usually means conversion tracking or reporting isn’t synced yet.';
+
+	    // 2) Budget pacing insight
+	    const spendTitle = spendWeekly > 0
+	      ? `${_fmtMoney_(spendWeekly)}/week ≈ ~${estLeadsWeekRounded} leads/week`
+	      : 'Weekly budget is not set yet';
+	    const spendText = spendWeekly > 0
+	      ? (estLeadsWeekRounded < 3
+	        ? 'At this pace, lead volume will stay low. If you want more leads, increasing weekly spend is the simplest lever (assuming CPL stays similar).'
+	        : 'Budget is generating consistent lead volume. If close rate stays healthy, scaling budget should scale leads.')
+	      : 'Once weekly spend is set in the KPIs sheet, the dashboard can estimate lead/week automatically.';
+
+	    // 3) Best ad group insight
+	    const bestTitle = bestEff
+	      ? `${bestEff.group}: best efficiency right now`
+	      : 'Ad groups: waiting for lead + CPL data';
+	    const bestText = bestEff
+	      ? `This ad group has the lowest cost/lead among active groups with conversions. Consider increasing budget share from ${bestEff.budgetPct || 0}% and keep the landing page tightly matched to the ad.`
+	      : 'Once AdGroups are populated (Google Ads script), we can automatically highlight the best and worst performers.';
+
+	    // 4) Source insight
+	    const srcTitle = topSource ? `Top source: ${topSource}` : 'Top source: not enough data yet';
+	    const srcText = topSource
+	      ? 'Double down on what is producing leads. If you add UTMs later, we can break this down by campaign/ad group automatically.'
+	      : 'Once the current-month lead sources are available, the dashboard will call out what is driving volume.';
+
+	    return [
+	      { emoji: '💵', title: cplTitle, text: cplText, color: cplColor },
+	      { emoji: '📈', title: spendTitle, text: spendText, color: '' },
+	      { emoji: '🏆', title: bestTitle, text: bestText, color: 'good' },
+	      { emoji: '🔎', title: srcTitle, text: srcText, color: '' },
+	    ];
+	  }
+
+	  function _renderAutoInsights(container) {
+	    const insights = _autoInsightsPayload_();
+	    container.innerHTML = insights.map(r => `
+	      <div class="insight-card ${r.color || ''}">
+	        <span class="insight-emoji">${r.emoji}</span>
+	        <div class="insight-title">${r.title}</div>
+	        <div class="insight-text">${r.text}</div>
+	      </div>
+	    `).join('');
+	  }
+
+	  function _shouldAutoFillInsights_(rows) {
+	    const titles = (rows || []).map(r => (r['Title'] || '').trim()).filter(Boolean);
+	    if (!titles.length) return true;
+	    return String(rows[0] && rows[0]['Title'] ? rows[0]['Title'] : '').trim().toUpperCase() === 'AUTO';
+	  }
+
+	  function _writeInsightsBatch_(rows, insights) {
+	    const n = Math.min(rows.length, insights.length);
+	    for (let i = 0; i < n; i++) {
+	      const row = rows[i]._row;
+	      const it = insights[i];
+	      setTimeout(() => writeToSheet('Insights', row, 1, it.emoji || '💡'), 60 * (i * 4 + 0));
+	      setTimeout(() => writeToSheet('Insights', row, 2, it.title || ''), 60 * (i * 4 + 1));
+	      setTimeout(() => writeToSheet('Insights', row, 3, it.text || ''),  60 * (i * 4 + 2));
+	      setTimeout(() => writeToSheet('Insights', row, 4, it.color || ''), 60 * (i * 4 + 3));
+	    }
+	  }
+
+		  function _maybeAutoFillInsights(rows) {
+		    const container = document.getElementById('insights-container');
+		    if (!container) return;
+
+		    const today = _todayKey_();
+		    const last = localStorage.getItem('fps_auto_insights_last') || '';
+		    const autoOn = _autoModeEnabled_();
+		    const sheetBlankOrFlag = _shouldAutoFillInsights_(rows);
+		    if (!autoOn && !sheetBlankOrFlag) return;
+		    if (last === today) return;
+
+		    const insights = _autoInsightsPayload_();
+		    _renderAutoInsights(container);
+		    _writeInsightsBatch_(rows, insights);
+		    localStorage.setItem('fps_auto_insights_last', today);
+		  }
+
+	  function _autoOpportunitiesPayload_() {
+	    const k = window.__fpsAuto && window.__fpsAuto.kpis ? window.__fpsAuto.kpis : {};
+	    const cplTarget = 120;
+	    const spendWeekly = _num_(k.spendWeekly);
+	    const cpl = _num_(k.cpl);
+
+	    const groups = (window.__fpsAuto && window.__fpsAuto.adGroups ? window.__fpsAuto.adGroups : [])
+	      .map(r => ({
+	        group: r['Group'] || '',
+	        status: (r['Status'] || 'Active'),
+	        leads: _num_(r['Leads/Month']),
+	        cpl: _num_(r['Cost per Lead']),
+	        budgetPct: _num_(String(r['Budget %'] || '').replace('%',''))
+	      }))
+	      .filter(g => g.group && g.status.toLowerCase() !== 'paused');
+
+	    const best = groups.filter(g => g.leads > 0 && g.cpl > 0).sort((a, b) => a.cpl - b.cpl)[0];
+	    const worst = groups.filter(g => g.cpl > 0).sort((a, b) => b.cpl - a.cpl)[0];
+
+	    const lines = [];
+	    if (best) {
+	      lines.push(`Scale what works: increase budget share on "${best.group}" (currently ${best.budgetPct || 0}%) because it has the lowest CPL (${_fmtMoney_(best.cpl)}).`);
+	    }
+	    if (worst && worst.cpl > cplTarget) {
+	      lines.push(`Cut waste: review search terms + add negatives for "${worst.group}" (CPL ${_fmtMoney_(worst.cpl)}).`);
+	    }
+	    if (!best && cpl === 0) {
+	      lines.push('Confirm conversion tracking: CPL is not showing yet, so ad group optimization data may be incomplete.');
+	    }
+	    if (spendWeekly > 0 && cpl > 0) {
+	      lines.push(`If you want more lead volume, raising spend from ${_fmtMoney_(spendWeekly)}/week will likely scale leads without changing CPL drastically (if tracking stays clean).`);
+	    }
+
+	    const title = lines.length ? 'This week: quick wins' : 'This week: waiting for data';
+	    const text = lines.length ? ('• ' + lines.join('\n• ')) : 'Once AdGroups and CPL are available, this will auto-suggest optimizations.';
+	    return { title, text };
+	  }
+
+	  function _maybeAutoFillOpportunities(titleEl, textEl) {
+	    const today = _todayKey_();
+	    const last = localStorage.getItem('fps_auto_opps_last') || '';
+	    if (last === today) return;
+
+		    const curTitle = (titleEl.value || '').trim();
+		    const curText = (textEl.value || '').trim();
+		    const force = (curTitle.toUpperCase() === 'AUTO');
+		    const autoOn = _autoModeEnabled_();
+		    const blank = (!curTitle && !curText);
+		    if (!force && !autoOn && !blank) return;
+
+	    const p = _autoOpportunitiesPayload_();
+	    titleEl.value = p.title;
+	    textEl.value = p.text;
+
+	    if (_sheetPos.Opportunities) {
+	      writeToSheet('Opportunities', _sheetPos.Opportunities, 1, p.title);
+	      writeToSheet('Opportunities', _sheetPos.Opportunities, 2, p.text);
+	    }
+
+	    localStorage.setItem('fps_auto_opps_last', today);
+	    _setOpportunityStatus('Auto-generated (free) ✓');
+	  }
+
+		  // ── Ad Groups ─────────────────────────────────────────────────
+		  function _applyAdGroups(rows) {
+		    _sheetPos.AdGroups = rows.map(r => r._row);
+		    window.__fpsAuto.adGroups = rows || [];
+		    // Always update the Overview + top-level Google Ads cards even if the Google Ads tab
+		    // table isn't currently mounted in the DOM (prevents "Loading..." hanging forever).
+		    _renderOverviewAdGroupBars(rows);
+		    _syncGoogleAdsCardsFromAdGroups(rows);
 
 	    const tbody = document.querySelector('.ad-groups-table tbody');
 	    if (!tbody) return;
@@ -2083,6 +2334,7 @@
   const now = new Date();
   document.getElementById('updateTime').textContent =
     'Updated: ' + now.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+  _syncAutoBtn_();
 
   // ── ROI CALCULATOR ────────────────────────────────────────────
   function calcROI() {
