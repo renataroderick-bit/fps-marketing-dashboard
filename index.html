@@ -73,10 +73,10 @@
   .period-badge {
     background: rgba(255,255,255,0.18);
     border: 1px solid rgba(255,255,255,0.28);
-    padding: 7px 16px;
+    padding: 8px 18px;
     border-radius: 20px;
-    font-size: 13.5px;
-    font-weight: 650;
+    font-size: 14px;
+    font-weight: 700;
     letter-spacing: -0.15px;
   }
   .last-update { font-size: 11px; opacity: 0.55; margin-top: 4px; }
@@ -88,9 +88,9 @@
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.22);
     color: rgba(255,255,255,0.85);
-    padding: 5px 10px;
+    padding: 4px 9px;
     border-radius: 16px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -2048,8 +2048,8 @@
 	    const cplTitle = cpl > 0 ? `${_fmtMoney_(cpl)}/lead is ${cpl <= 120 ? 'on target' : 'high'}` : 'Cost/lead is not available yet';
 	    const cplText = cpl > 0
 	      ? (cpl <= 120
-	        ? 'We are within target. We should keep budget stable and keep optimizing ads + landing page to improve lead quality.'
-	        : 'We are above target. We should tighten keywords, review search terms, add negatives, and align ad copy with the landing page to reduce wasted clicks.')
+	        ? 'We are within target. Let’s keep spend steady and keep improving ads + landing page so lead quality stays high.'
+	        : 'We are above target. Let’s tighten keywords, review search terms, add negatives, and align ad copy with the landing page to reduce wasted clicks.')
 	      : 'No cost/lead is showing. This usually means conversion tracking or reporting isn’t synced yet.';
 
 	    // 2) Budget pacing insight
@@ -2058,8 +2058,8 @@
 	      : 'Weekly budget is not set yet';
 	    const spendText = spendWeekly > 0
 	      ? (estLeadsWeekRounded < 3
-	        ? 'At this pace, lead volume will stay low. If we want more leads, increasing weekly spend is the simplest lever (assuming CPL stays similar).'
-	        : 'Budget is generating consistent lead volume. If our close rate stays healthy, scaling budget should scale leads.')
+	        ? 'At this pace, lead volume will stay low. If we want more leads, raising weekly spend is the simplest lever (assuming CPL stays similar).'
+	        : 'Budget is generating consistent lead volume. If our close rate stays healthy, increasing spend should scale leads.')
 	      : 'Once weekly spend is set in the KPIs sheet, the dashboard can estimate lead/week automatically.';
 
 	    // 3) Best ad group insight
@@ -2067,13 +2067,13 @@
 	      ? `${bestEff.group}: best efficiency right now`
 	      : 'Ad groups: waiting for lead + CPL data';
 	    const bestText = bestEff
-	      ? `This ad group has the lowest cost/lead among active groups with conversions. We should consider increasing budget share from ${bestEff.budgetPct || 0}% and keep the landing page tightly matched to the ad.`
+	      ? `This ad group has the lowest cost/lead among active groups with conversions. Let’s consider increasing budget share from ${bestEff.budgetPct || 0}% and keep the landing page tightly matched to the ad.`
 	      : 'Once AdGroups are populated (Google Ads script), we can automatically highlight the best and worst performers.';
 
 	    // 4) Source insight
 	    const srcTitle = topSource ? `Top source: ${topSource}` : 'Top source: not enough data yet';
 	    const srcText = topSource
-	      ? 'We should double down on what is producing leads. If we add UTMs later, we can break this down by campaign/ad group automatically.'
+	      ? 'Let’s double down on what is producing leads. If we add UTMs later, we can break this down by campaign/ad group automatically.'
 	      : 'Once the current-month lead sources are available, the dashboard will call out what is driving volume.';
 
 	    return [
