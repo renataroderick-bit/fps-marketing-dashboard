@@ -1878,31 +1878,53 @@
     saveAll();
   };
 
-  // ── Insights ──────────────────────────────────────────────────
-	  function _applyInsights(rows) {
-	    _sheetPos.Insights = rows.map(r => r._row);
-	    const container = document.getElementById('insights-container');
-	    if (!container) return;
-	    window.__fpsLastInsightsRows = rows || [];
-	    if (!rows || !rows.length) {
-	      _renderAutoInsights(container);
-	      return;
+	  // ── Insights ──────────────────────────────────────────────────
+	  function _pickField_(row, names) {
+	    // Robust to header variations in Google Sheets (case, spaces, etc.)
+	    for (const n of names) {
+	      if (row && row[n] != null && row[n] !== '') return row[n];
 	    }
-	    let html = '';
-	    rows.forEach(r => {
-	      const colorClass = r['Color']||'';
-	      html += `<div class="insight-card ${colorClass}">
-        <span class="insight-emoji txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="1">${r['Emoji']||'💡'}</span>
-        <div class="insight-title txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="2">${r['Title']}</div>
-        <div class="insight-text txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="3">${r['Text']||''}</div>
-        <select class="insight-color-sel" onchange="setInsightColor(this,${r._row})">
-          <option value="" ${!colorClass?'selected':''}>🎨 default</option>
-          <option value="good" ${colorClass==='good'?'selected':''}>✅ good (green)</option>
-          <option value="warn" ${colorClass==='warn'?'selected':''}>⚠️ warn (orange)</option>
-        </select>
-      </div>`;
-    });
-    container.innerHTML = html;
+	    const keys = row ? Object.keys(row) : [];
+	    for (const n of names) {
+	      const needle = String(n).trim().toLowerCase();
+	      const k = keys.find(x => String(x).trim().toLowerCase() === needle);
+	      if (k && row[k] != null && row[k] !== '') return row[k];
+	    }
+	    return '';
+	  }
+
+	  function _insightEmoji_(r) { return _pickField_(r, ['Emoji','emoji','Icon','icon']) || '💡'; }
+	  function _insightTitle_(r) { return _pickField_(r, ['Title','title','Headline','headline']) || ''; }
+	  function _insightText_(r)  { return _pickField_(r, ['Text','text','Body','body','Message','message','Description','description']) || ''; }
+	  function _insightColor_(r) { return _pickField_(r, ['Color','color','Class','class']) || ''; }
+
+		  function _applyInsights(rows) {
+		    _sheetPos.Insights = rows.map(r => r._row);
+		    const container = document.getElementById('insights-container');
+		    if (!container) return;
+		    window.__fpsLastInsightsRows = rows || [];
+		    if (!rows || !rows.length) {
+		      _renderAutoInsights(container);
+		      return;
+		    }
+		    let html = '';
+		    rows.forEach(r => {
+		      const colorClass = _insightColor_(r) || '';
+		      const emoji = _insightEmoji_(r);
+		      const title = _insightTitle_(r);
+		      const text = _insightText_(r);
+		      html += `<div class="insight-card ${colorClass}">
+	        <span class="insight-emoji txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="1">${emoji}</span>
+	        <div class="insight-title txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="2">${title}</div>
+	        <div class="insight-text txt-edit" contenteditable="true" data-tab="Insights" data-row="${r._row}" data-col="3">${text}</div>
+	        <select class="insight-color-sel" onchange="setInsightColor(this,${r._row})">
+	          <option value="" ${!colorClass?'selected':''}>🎨 default</option>
+	          <option value="good" ${colorClass==='good'?'selected':''}>✅ good (green)</option>
+	          <option value="warn" ${colorClass==='warn'?'selected':''}>⚠️ warn (orange)</option>
+	        </select>
+	      </div>`;
+	    });
+	    container.innerHTML = html;
 
 	    container.querySelectorAll('[contenteditable="true"][data-tab="Insights"]').forEach(el => {
 	      el.onblur = () => {
@@ -2074,11 +2096,12 @@
 	    `).join('');
 	  }
 
-	  function _shouldAutoFillInsights_(rows) {
-	    const titles = (rows || []).map(r => (r['Title'] || '').trim()).filter(Boolean);
-	    if (!titles.length) return true;
-	    return String(rows[0] && rows[0]['Title'] ? rows[0]['Title'] : '').trim().toUpperCase() === 'AUTO';
-	  }
+		  function _shouldAutoFillInsights_(rows) {
+		    const titles = (rows || []).map(r => (_insightTitle_ ? _insightTitle_(r) : (r['Title'] || '')).trim()).filter(Boolean);
+		    if (!titles.length) return true;
+		    const firstTitle = (rows && rows[0]) ? ((_insightTitle_ ? _insightTitle_(rows[0]) : (rows[0]['Title'] || '')) + '') : '';
+		    return firstTitle.trim().toUpperCase() === 'AUTO';
+		  }
 
 	  function _writeInsightsBatch_(rows, insights) {
 	    const n = Math.min(rows.length, insights.length);
@@ -2092,22 +2115,31 @@
 	    }
 	  }
 
-		  function _maybeAutoFillInsights(rows) {
-		    const container = document.getElementById('insights-container');
-		    if (!container) return;
+			  function _maybeAutoFillInsights(rows) {
+			    const container = document.getElementById('insights-container');
+			    if (!container) return;
 
-		    const today = _todayKey_();
-		    const last = localStorage.getItem('fps_auto_insights_last') || '';
-		    const autoOn = _autoModeEnabled_();
-		    const sheetBlankOrFlag = _shouldAutoFillInsights_(rows);
-		    if (!autoOn && !sheetBlankOrFlag) return;
-		    if (last === today) return;
+			    const today = _todayKey_();
+			    const last = localStorage.getItem('fps_auto_insights_last') || '';
+			    const autoOn = _autoModeEnabled_();
+			    const sheetBlankOrFlag = _shouldAutoFillInsights_(rows);
+			    if (!autoOn && !sheetBlankOrFlag) return;
+			    if (last === today) return;
 
-		    const insights = _autoInsightsPayload_();
-		    _renderAutoInsights(container);
-		    _writeInsightsBatch_(rows, insights);
-		    localStorage.setItem('fps_auto_insights_last', today);
-		  }
+			    // Make sure the Insights sheet has the expected headers so GViz reads fields correctly.
+			    // This prevents the dashboard from showing "undefined" when headers were missing/changed.
+			    if (autoOn) {
+			      writeToSheet('Insights', 1, 1, 'Emoji');
+			      writeToSheet('Insights', 1, 2, 'Title');
+			      writeToSheet('Insights', 1, 3, 'Text');
+			      writeToSheet('Insights', 1, 4, 'Color');
+			    }
+
+			    const insights = _autoInsightsPayload_();
+			    _renderAutoInsights(container);
+			    _writeInsightsBatch_(rows, insights);
+			    localStorage.setItem('fps_auto_insights_last', today);
+			  }
 
 	  function _autoOpportunitiesPayload_() {
 	    const k = window.__fpsAuto && window.__fpsAuto.kpis ? window.__fpsAuto.kpis : {};
