@@ -2206,7 +2206,7 @@
 	  }
 
 		  // ── Ad Groups ─────────────────────────────────────────────────
-		  function _applyAdGroups(rows) {
+  function _applyAdGroups(rows) {
 		    _sheetPos.AdGroups = rows.map(r => r._row);
 		    window.__fpsAuto.adGroups = rows || [];
 		    // Always update the Overview + top-level Google Ads cards even if the Google Ads tab
@@ -2224,7 +2224,12 @@
     let html = '';
     rows.forEach((r, i) => {
       const active = (r['Status']||'Active').toLowerCase() !== 'paused';
-      const pct    = parseInt(r['Budget %'])||0;
+      let pctRaw = String(r['Budget %'] || '').trim();
+      let pctNum = parseFloat(pctRaw.replace('%', ''));
+      if (isFinite(pctNum) && pctRaw.indexOf('%') === -1 && pctNum > 0 && pctNum <= 1) {
+        pctNum = pctNum * 100;
+      }
+      const pct = isFinite(pctNum) ? Math.round(pctNum) : 0;
       const leads  = r['Leads/Month']||'0';
       const cpl    = r['Cost per Lead']||'';
       const bc     = barColors[i]||'';

@@ -33,7 +33,7 @@ function main() {
   const adSheet = ensureSheet_(ss, SHEET_ADGROUPS, ADGROUP_HEADERS);
   const kpiSheet = ensureSheet_(ss, SHEET_KPIS, ['Metric', 'Value']);
 
-  const rows = fetchAdGroupStatsThisMonth_(CAMPAIGN_NAME);
+  const rows = fetchCurrentAdGroupRows_(CAMPAIGN_NAME);
   writeAdGroups_(adSheet, rows);
 
   // KPI rollups from ad groups
@@ -44,10 +44,68 @@ function main() {
   setKpi_(kpiSheet, 'Ads Spend This Month', round2_(totalCost));
   setKpi_(kpiSheet, 'Cost per Lead', round2_(cpl));
 
-  Logger.log(`Synced ${rows.length} ad groups for "${CAMPAIGN_NAME}" (${DATE_RANGE}). Cost=$${round2_(totalCost)} Leads=${totalLeads} CPL=$${round2_(cpl)}`);
+  Logger.log(`Synced ${rows.length} current ad groups for "${CAMPAIGN_NAME}" (${DATE_RANGE}). Cost=$${round2_(totalCost)} Leads=${totalLeads} CPL=$${round2_(cpl)}`);
 }
 
-function fetchAdGroupStatsThisMonth_(campaignName) {
+function fetchCurrentAdGroupRows_(campaignName) {
+  const metricsByGroup = fetchAdGroupMetricsThisMonth_(campaignName);
+  const currentGroups = fetchCurrentAdGroups_(campaignName);
+
+  const rows = currentGroups.map(groupInfo => {
+    const metrics = metricsByGroup[groupInfo.group] || { cost: 0, leads: 0 };
+    const leads = Math.round(metrics.leads || 0);
+    const cost = metrics.cost || 0;
+    const cpl = leads > 0 ? (cost / leads) : null;
+
+    return {
+      group: groupInfo.group,
+      status: groupInfo.status,
+      leads: leads,
+      cost: cost,
+      cpl: cpl
+    };
+  });
+
+  const totalCost = rows.reduce((sum, row) => sum + (row.cost || 0), 0);
+  rows.forEach(row => {
+    row.budgetPct = totalCost > 0 ? (row.cost / totalCost) : 0;
+  });
+
+  rows.sort(function(a, b) {
+    const aActive = a.status === 'Active' ? 1 : 0;
+    const bActive = b.status === 'Active' ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+    return (b.cost || 0) - (a.cost || 0);
+  });
+
+  return rows;
+}
+
+function fetchCurrentAdGroups_(campaignName) {
+  const groups = [];
+  const seen = {};
+  const selector = AdsApp
+    .adGroups()
+    .withCondition("CampaignName = '" + escSelector_(campaignName) + "'")
+    .withCondition("Status IN [ENABLED, PAUSED]");
+  const it = selector.get();
+
+  while (it.hasNext()) {
+    const adGroup = it.next();
+    const name = adGroup.getName();
+    if (!name || seen[name]) continue;
+
+    seen[name] = true;
+    groups.push({
+      group: name,
+      status: normalizeStatus_(adGroup.isPaused() ? 'PAUSED' : 'ENABLED')
+    });
+  }
+
+  return groups;
+}
+
+function fetchAdGroupMetricsThisMonth_(campaignName) {
   const query =
     "SELECT " +
       "campaign.name, " +
@@ -61,41 +119,22 @@ function fetchAdGroupStatsThisMonth_(campaignName) {
       "AND segments.date DURING " + DATE_RANGE;
 
   const it = AdsApp.search(query);
-  const agg = {}; // key -> { group,status,cost,leads }
+  const agg = {}; // key -> { cost, leads }
 
   while (it.hasNext()) {
     const r = it.next();
     const group = r.adGroup && r.adGroup.name ? r.adGroup.name : '';
     if (!group) continue;
 
-    const status = (r.adGroup && r.adGroup.status) ? String(r.adGroup.status) : 'ENABLED';
     const cost = (r.metrics && r.metrics.costMicros) ? (Number(r.metrics.costMicros) / 1e6) : 0;
     const leads = (r.metrics && r.metrics.conversions) ? Number(r.metrics.conversions) : 0;
 
-    if (!agg[group]) agg[group] = { group: group, status: status, cost: 0, leads: 0 };
+    if (!agg[group]) agg[group] = { cost: 0, leads: 0 };
     agg[group].cost += cost;
     agg[group].leads += leads;
   }
 
-  const out = Object.keys(agg).map(k => {
-    const x = agg[k];
-    const cpl = x.leads > 0 ? (x.cost / x.leads) : null;
-    return {
-      group: x.group,
-      status: normalizeStatus_(x.status),
-      leads: Math.round(x.leads),
-      cost: x.cost,
-      cpl: cpl
-    };
-  });
-
-  // Compute budget % as spend share (simple + stable)
-  const totalCost = out.reduce((s, r) => s + (r.cost || 0), 0);
-  out.forEach(r => { r.budgetPct = totalCost > 0 ? (r.cost / totalCost) : 0; });
-
-  // Nice ordering for the dashboard table
-  out.sort((a, b) => (b.cost || 0) - (a.cost || 0));
-  return out;
+  return agg;
 }
 
 function writeAdGroups_(sheet, rows) {
@@ -164,6 +203,10 @@ function normalizeStatus_(raw) {
 
 function escGaql_(s) {
   return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function escSelector_(s) {
+  return String(s || '').replace(/'/g, "\\'");
 }
 
 function round2_(n) {
