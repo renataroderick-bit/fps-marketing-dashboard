@@ -1403,7 +1403,9 @@
     if (old) old.remove();
     const s = document.createElement('script');
     s.id = 'jsonp-' + tab;
-    s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=reqId:0;responseHandler:handle_gviz_${tab}&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`;
+    // Force a single header row so text-only tabs like Insights are not
+    // misparsed as having two header rows by GViz.
+    s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=reqId:0;responseHandler:handle_gviz_${tab}&sheet=${encodeURIComponent(tab)}&headers=1&t=${Date.now()}`;
     s.onerror = () => { _loaded[tab] = 'err'; _checkDone(); };
     document.head.appendChild(s);
   }
